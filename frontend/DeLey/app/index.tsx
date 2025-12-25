@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import {
-  Text,
-  View,
-  Image,
+  Text as RNText,
+  View as RNView,
+  Image as RNImage,
   StyleSheet,
   Animated,
   Easing,
@@ -10,6 +10,10 @@ import {
   Platform,
 } from "react-native";
 import LogoImage from "../assets/images/LogoImage.png";
+
+const Text = RNText as any;
+const View = RNView as any;
+const Image = RNImage as any;
 
 import {
   useFonts as useQuicksand,
@@ -25,9 +29,11 @@ import {
   useFonts as useUnderdog,
   Underdog_400Regular,
 } from "@expo-google-fonts/underdog";
+import BoxContainer from "../components/BoxContainer";
+import StarsBackground from "../components/StarsBackground";
 
-const AnimatedImage = Animated.createAnimatedComponent(Image);
-const AnimatedText = Animated.createAnimatedComponent(Text);
+const AnimatedImage = Animated.createAnimatedComponent(Image) as any;
+const AnimatedText = Animated.createAnimatedComponent(Text) as any;
 
 export default function Index() {
   const [qLoaded] = useQuicksand({
@@ -110,35 +116,40 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <Pressable {...pressableProps} style={styles.logoWrapper}>
-        <AnimatedImage
-          source={LogoImage}
-          style={[
-            styles.logo,
-            {
-              transform: [{ translateY: logoTranslateY }, { scale: logoScale }],
-            },
-          ]}
-          resizeMode="contain"
-        />
-      </Pressable>
+      <StarsBackground />
+      <View style={styles.content}>
+        <Pressable {...pressableProps} style={styles.logoWrapper}>
+          <AnimatedImage
+            source={LogoImage}
+            style={[
+              styles.logo,
+              {
+                transform: [{ translateY: logoTranslateY }, { scale: logoScale }],
+              },
+            ]}
+            resizeMode="contain"
+          />
+        </Pressable>
 
-      <Pressable {...pressableProps} style={styles.titleWrapper}>
-        <AnimatedText
-          style={[
-            styles.title,
-            {
-              transform: [{ translateY: titleTranslateY }, { scale: titleScale }],
-            },
-          ]}
-        >
-          De Ley
+        <Pressable {...pressableProps} style={styles.titleWrapper}>
+          <AnimatedText
+            style={[
+              styles.title,
+              {
+                transform: [{ translateY: titleTranslateY }, { scale: titleScale }],
+              },
+            ]}
+          >
+            De Ley
+          </AnimatedText>
+        </Pressable>
+
+        <AnimatedText style={[styles.subtitle, { opacity: subtitleOpacity }]}>
+          Your legal assistant, explain as an human.
         </AnimatedText>
-      </Pressable>
 
-      <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
-        Your legal assistant, explain as an human.
-      </Animated.Text>
+        <BoxContainer />
+      </View>
     </View>
   );
 }
@@ -146,42 +157,53 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  content: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fbfbfd",
+    paddingTop: 60, // Espacio para el contenido superior
   },
   logoWrapper: {
-    padding: 8,
+    padding: 12,
     borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    backdropFilter: "blur(10px)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   logo: {
-    width: 96, 
-    height: 96,
-    marginBottom: 2,
+    width: 100, 
+    height: 100,
+    marginBottom: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   titleWrapper: {
     paddingVertical: 4,
   },
   title: {
     fontFamily: "Quicksand_700Bold",
-    fontSize: 30,
-    marginTop: 6, 
-    color: "#0f172a",
-    textShadowColor: "rgba(15,23,42,0.06)",
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 10,
+    fontSize: 32,
+    marginTop: 8, 
+    color: "#ffffff",
+    textShadowColor: "rgba(0,0,0,0.8)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+    textAlign: "center",
   },
   subtitle: {
     fontFamily: "Inconsolata_200ExtraLight",
-    fontSize: 14,
-    color: "#6b7280",
-    marginTop: 8,
+    fontSize: 16,
+    color: "#e2e8f0",
+    marginTop: 12,
     textAlign: "center",
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 });
