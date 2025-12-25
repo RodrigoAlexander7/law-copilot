@@ -115,9 +115,13 @@ export default function Index() {
       : { onPressIn: onHoverIn, onPressOut: onHoverOut };
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={true}>
-        <StarsBackground />
+    <View style={styles.root}>
+      <StarsBackground />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+      >
         <View style={styles.header}>
           <Pressable {...pressableProps} style={styles.logoWrapper}>
             <AnimatedImage
@@ -153,19 +157,16 @@ export default function Index() {
         <View style={styles.body}>
           <BoxContainer />
         </View>
-      </ScrollView>
 
-      {/* Footer con dots de navegación */}
-      <View style={styles.footer}>
-        <View style={styles.dots}>
-          {[0, 1, 2].map((index) => (
-            <View
-              key={index}
-              style={styles.dot}
-            />
-          ))}
+        {/* Footer con dots de navegación (ahora parte del flujo del ScrollView) */}
+        <View style={styles.footer}>
+          <View style={styles.dots}>
+            {[0, 1, 2].map((index) => (
+              <View key={index} style={styles.dot} />
+            ))}
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -173,6 +174,15 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  root: {
+    flex: 1,
+    position: "relative",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    // asegúrate que el contenido ocupe toda la altura disponible para empujar el footer al final
+    justifyContent: "flex-start",
   },
   header: {
     paddingTop: 60,
@@ -226,15 +236,14 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    // ahora es parte del flujo, no fixed
+    height: 80,
+    width: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.28)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1000,
+    paddingVertical: 12,
+    marginTop: 12,
   },
   dots: {
     flexDirection: "row",
