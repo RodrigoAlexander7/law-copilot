@@ -99,6 +99,38 @@ export default function BoxContainer() {
       useNativeDriver: false,
     }).start();
   };
+  
+  // Add logging to help debug viewability/index updates
+  const _onMomentumScrollEnd = (event: any) => {
+    const idx = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
+    // eslint-disable-next-line no-console
+    console.log('[BoxContainer] onMomentumScrollEnd calculated index:', idx);
+    setSelectedIndex(idx);
+  };
+
+  // More reliable viewability handler for FlatList: update selectedIndex when the visible item changes
+  const viewConfigRef = useRef({ viewAreaCoveragePercentThreshold: 50 });
+  const onViewRef = useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    if (viewableItems && viewableItems.length > 0) {
+      const vi = viewableItems[0];
+      let idx: number | null = null;
+      if (typeof vi.index === 'number') {
+        idx = vi.index;
+      } else if (vi.key) {
+        const parsed = parseInt(vi.key, 10);
+        if (!Number.isNaN(parsed)) {
+          // key may be item.id which is 1-based in this data; normalize to 0-based index
+          idx = parsed > 0 && parsed <= boxes.length ? parsed - 1 : parsed;
+        }
+      }
+      if (idx !== null && !Number.isNaN(idx)) {
+        // debug log to help diagnose viewability issues
+        // eslint-disable-next-line no-console
+        console.log('[BoxContainer] onViewableItemsChanged -> idx:', idx, 'viewableItems:', viewableItems.map(v=> ({ index: v.index, key: v.key }))); 
+        setSelectedIndex(idx);
+      }
+    }
+  });
 
   const scrollToIndex = (index: number) => {
     if (flatListRef.current) {
@@ -117,6 +149,22 @@ export default function BoxContainer() {
     });
     setCardRotations(rotations);
   }, []);
+
+  // Animated values for nav dots - initialize once so they're available on first render
+  const dotAnimsRef = useRef<Animated.Value[]>(boxes.map((_, i) => new Animated.Value(i === 0 ? 1 : 0)));
+
+  // animate dots when selectedIndex changes
+  useEffect(() => {
+    if (!dotAnimsRef.current || !dotAnimsRef.current.length) return;
+    const animations = dotAnimsRef.current.map((av, i) =>
+      Animated.timing(av, {
+        toValue: i === selectedIndex ? 1 : 0,
+        duration: 260,
+        useNativeDriver: true,
+      })
+    );
+    Animated.parallel(animations).start();
+  }, [selectedIndex]);
 
   const toggleCardFlip = (cardId: string) => {
     const rotation = cardRotations[cardId];
@@ -154,7 +202,19 @@ export default function BoxContainer() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         showsVerticalScrollIndicator={false}
-        onMomentumScrollEnd={onScrollEnd}
+        onMomentumScrollEnd={_onMomentumScrollEnd}
+        onViewableItemsChanged={onViewRef.current}
+        viewabilityConfig={viewConfigRef.current}
+        onScroll={(e: any) => {
+          const x = e.nativeEvent.contentOffset.x;
+          const idx = Math.round(x / screenWidth);
+          // eslint-disable-next-line no-console
+          // console.log('[BoxContainer] onScroll idx:', idx, 'offsetX:', x);
+          if (typeof idx === 'number' && idx !== selectedIndex) {
+            setSelectedIndex(idx);
+          }
+        }}
+        scrollEventThrottle={16}
         keyExtractor={(item: BoxItem) => item.id}
         renderItem={({ item }: { item: BoxItem }) => (
           <ScrollView 
@@ -223,20 +283,6 @@ export default function BoxContainer() {
                         resizeMode="contain"
                         onError={() => console.log('Error loading icon:', item.icon)}
                       />
-                      {/* TEMP: Icon placeholder */}
-                      <View style={{
-                        position: 'absolute',
-                        width: 80,
-                        height: 80,
-                        backgroundColor: 'rgba(255,255,255,0.3)',
-                        borderRadius: 40,
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                      }}>
-                        <AnimatedText style={{ fontSize: 24, color: 'white' }}>
-                          {item.id === '1' ? '📚' : item.id === '2' ? '⚖️' : '👨‍⚖️'}
-                        </AnimatedText>
-                      </View>
                       <AnimatedText style={[styles.title, { opacity: 1 }]}>
                         {item.title}
                       </AnimatedText>
@@ -263,6 +309,34 @@ export default function BoxContainer() {
           </ScrollView>
         )}
       />
+        {/* Navigation dots for the slider (moved here from index) */}
+        <View style={styles.nav}>
+          {boxes.map((_, idx) => {
+            const anim = dotAnimsRef.current[idx];
+            const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] });
+            const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1] });
+            const ringScale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.35] });
+            return (
+              <TouchableOpacityComponent
+                key={idx}
+                onPress={() => scrollToIndex(idx)}
+                activeOpacity={0.8}
+                style={styles.navDotWrapper}
+              >
+                <AnimatedView style={[styles.navDotRing, { transform: [{ scale: ringScale }], opacity }]} />
+                <AnimatedView
+                  style={[
+                    styles.navDot,
+                    {
+                      transform: [{ scale }],
+                      opacity,
+                    },
+                  ]}
+                />
+              </TouchableOpacityComponent>
+            );
+          })}
+        </View>
     </View>
   );
 }
@@ -366,8 +440,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   icon: {
-    width: 80,
-    height: 80,
+    width: 160,
+    height: 160,
     marginBottom: 20,
   },
   title: {
@@ -407,5 +481,46 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  nav: {
+    width: "100%",
+    paddingVertical: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  navDotWrapper: {
+    marginHorizontal: 6,
+    width: 28,
+    height: 28,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  navDotRing: {
+    position: "absolute",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(255,255,255,0.03)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  navDot: {
+    width: 12,
+    height: 12,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    borderRadius: 6,
+    marginHorizontal: 8,
+  },
+  navDotActive: {
+    width: 16,
+    height: 16,
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
   },
 });

@@ -27,6 +27,7 @@ import {
 const LogoImage = require("../assets/images/LogoImage.png");
 import BoxContainer from "../components/BoxContainer";
 import StarsBackground from "../components/StarsBackground";
+import Footer from "../components/Footer";
 
 const Text = RNText as any;
 const View = RNView as any;
@@ -157,16 +158,10 @@ export default function Index() {
         <View style={styles.body}>
           <BoxContainer />
         </View>
-
-        {/* Footer con dots de navegación (ahora parte del flujo del ScrollView) */}
-        <View style={styles.footer}>
-          <View style={styles.dots}>
-            {[0, 1, 2].map((index) => (
-              <View key={index} style={styles.dot} />
-            ))}
-          </View>
-        </View>
       </ScrollView>
+
+      {/* Footer estándar de la aplicación (fijo en bottom) */}
+      <Footer />
     </View>
   );
 }
