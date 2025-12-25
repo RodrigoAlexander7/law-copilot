@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import {
   Text as RNText,
   View as RNView,
@@ -8,13 +8,8 @@ import {
   Easing,
   Pressable,
   Platform,
+  ScrollView as RNScrollView,
 } from "react-native";
-import LogoImage from "../assets/images/LogoImage.png";
-
-const Text = RNText as any;
-const View = RNView as any;
-const Image = RNImage as any;
-
 import {
   useFonts as useQuicksand,
   Quicksand_400Regular,
@@ -29,9 +24,14 @@ import {
   useFonts as useUnderdog,
   Underdog_400Regular,
 } from "@expo-google-fonts/underdog";
+const LogoImage = require("../assets/images/LogoImage.png");
 import BoxContainer from "../components/BoxContainer";
 import StarsBackground from "../components/StarsBackground";
 
+const Text = RNText as any;
+const View = RNView as any;
+const Image = RNImage as any;
+const ScrollView = RNScrollView as any;
 const AnimatedImage = Animated.createAnimatedComponent(Image) as any;
 const AnimatedText = Animated.createAnimatedComponent(Text) as any;
 
@@ -51,7 +51,7 @@ export default function Index() {
   const anim = useRef(new Animated.Value(0)).current;
   const loopRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  const startIdle = () => {
+  const startIdle = useCallback(() => {
     loopRef.current = Animated.loop(
       Animated.sequence([
         Animated.timing(anim, {
@@ -69,7 +69,7 @@ export default function Index() {
       ])
     );
     loopRef.current.start();
-  };
+  }, [anim]);
 
   useEffect(() => {
     if (!(qLoaded && iLoaded && uLoaded)) return;
@@ -77,7 +77,7 @@ export default function Index() {
     return () => {
       loopRef.current?.stop();
     };
-  }, [qLoaded, iLoaded, uLoaded]);
+  }, [qLoaded, iLoaded, uLoaded, startIdle]);
 
   const onHoverIn = () => {
     loopRef.current?.stop();
@@ -115,40 +115,56 @@ export default function Index() {
       : { onPressIn: onHoverIn, onPressOut: onHoverOut };
 
   return (
-    <View style={styles.container}>
-      <StarsBackground />
-      <View style={styles.content}>
-        <Pressable {...pressableProps} style={styles.logoWrapper}>
-          <AnimatedImage
-            source={LogoImage}
-            style={[
-              styles.logo,
-              {
-                transform: [{ translateY: logoTranslateY }, { scale: logoScale }],
-              },
-            ]}
-            resizeMode="contain"
-          />
-        </Pressable>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={true}>
+        <StarsBackground />
+        <View style={styles.header}>
+          <Pressable {...pressableProps} style={styles.logoWrapper}>
+            <AnimatedImage
+              source={LogoImage}
+              style={[
+                styles.logo,
+                {
+                  transform: [{ translateY: logoTranslateY }, { scale: logoScale }],
+                },
+              ]}
+              resizeMode="contain"
+            />
+          </Pressable>
 
-        <Pressable {...pressableProps} style={styles.titleWrapper}>
-          <AnimatedText
-            style={[
-              styles.title,
-              {
-                transform: [{ translateY: titleTranslateY }, { scale: titleScale }],
-              },
-            ]}
-          >
-            De Ley
+          <Pressable {...pressableProps} style={styles.titleWrapper}>
+            <AnimatedText
+              style={[
+                styles.title,
+                {
+                  transform: [{ translateY: titleTranslateY }, { scale: titleScale }],
+                },
+              ]}
+            >
+              De Ley
+            </AnimatedText>
+          </Pressable>
+
+          <AnimatedText style={[styles.subtitle, { opacity: subtitleOpacity }]}>
+            Your legal assistant, explain as an human.
           </AnimatedText>
-        </Pressable>
+        </View>
 
-        <AnimatedText style={[styles.subtitle, { opacity: subtitleOpacity }]}>
-          Your legal assistant, explain as an human.
-        </AnimatedText>
+        <View style={styles.body}>
+          <BoxContainer />
+        </View>
+      </ScrollView>
 
-        <BoxContainer />
+      {/* Footer con dots de navegación */}
+      <View style={styles.footer}>
+        <View style={styles.dots}>
+          {[0, 1, 2].map((index) => (
+            <View
+              key={index}
+              style={styles.dot}
+            />
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -158,11 +174,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    justifyContent: "center",
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
     alignItems: "center",
-    paddingTop: 60, // Espacio para el contenido superior
+    justifyContent: "center",
+  },
+  body: {
+    flex: 1,
   },
   logoWrapper: {
     padding: 12,
@@ -205,5 +224,33 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  dots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderRadius: 6,
+    marginHorizontal: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });

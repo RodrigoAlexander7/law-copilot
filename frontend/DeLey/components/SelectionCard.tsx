@@ -6,8 +6,6 @@ import {
   StyleSheet,
   Animated,
   TouchableOpacity,
-  Dimensions,
-  useWindowDimensions,
 } from "react-native";
 
 const View = RNView as any;
@@ -15,11 +13,9 @@ const Text = RNText as any;
 const Image = RNImage as any;
 const AnimatedView = Animated.View as any;
 
-const { width } = Dimensions.get("window");
-
 interface SelectionCardProps {
-  wallpaper: string; // URL de imagen
-  icon: string; // URL de icono
+  wallpaper: any; // Asset object or image source
+  icon: any; // Asset object or image source
   title: string;
   description: string;
   features: string[];
@@ -32,7 +28,6 @@ export default function SelectionCard({
   description,
   features,
 }: SelectionCardProps) {
-  const { width: screenWidth } = useWindowDimensions();
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const [isFlipped, setIsFlipped] = useState(false);
 

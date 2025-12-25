@@ -5,7 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 const View = RNView as any;
 const AnimatedView = Animated.View as any;
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 // Función para generar posiciones aleatorias en un rango
 const generateShadows = (n: number, size: number, yOffset: number) => {
@@ -31,7 +31,7 @@ const StarsLayer = ({ shadows1, shadows2, duration }: { shadows1: any[], shadows
         useNativeDriver: true,
       })
     ).start();
-  }, [duration]);
+  }, [duration, anim]);
 
   const translateY = anim.interpolate({
     inputRange: [0, 1],
