@@ -399,37 +399,35 @@ export default function BoxContainer() {
                     activeOpacity={0.9}
                   >
                     <View style={[styles.circleLight, { opacity: pressedCards[item.id] ? 0.4 : 0 }]} />
-                    <View style={styles.text}>
-                      {!flippedCards[item.id] ? (
-                        // Front side
-                        <>
-                          <Image 
-                            source={item.icon} 
-                            style={styles.icon} 
-                            resizeMode="contain"
-                            onError={() => console.log('Error loading icon:', item.icon)}
-                          />
-                          <AnimatedText style={[styles.title, { opacity: 1 }]}>
-                            {item.title}
+                    {!flippedCards[item.id] ? (
+                      // Front side
+                      <View style={styles.text}>
+                        <Image 
+                          source={item.icon} 
+                          style={styles.icon} 
+                          resizeMode="contain"
+                          onError={() => console.log('Error loading icon:', item.icon)}
+                        />
+                        <AnimatedText style={[styles.title, { opacity: 1 }]}>
+                          {item.title}
+                        </AnimatedText>
+                        <AnimatedText style={[styles.description, { opacity: 0.9 }]}>
+                          {item.description}
+                        </AnimatedText>
+                      </View>
+                    ) : (
+                      // Back side - rotated to compensate for card flip
+                      <AnimatedView style={[styles.text, { transform: [{ rotateY: '180deg' }] }]}>
+                        <AnimatedText style={[styles.backTitle, { opacity: 1 }]}>
+                          Features
+                        </AnimatedText>
+                        {item.features.map((feature, index) => (
+                          <AnimatedText key={index} style={[styles.feature, { opacity: 0.9 }]}>
+                            • {feature}
                           </AnimatedText>
-                          <AnimatedText style={[styles.description, { opacity: 0.9 }]}>
-                            {item.description}
-                          </AnimatedText>
-                        </>
-                      ) : (
-                        // Back side
-                        <>
-                          <AnimatedText style={[styles.backTitle, { opacity: 1 }]}>
-                            Features
-                          </AnimatedText>
-                          {item.features.map((feature, index) => (
-                            <AnimatedText key={index} style={[styles.feature, { opacity: 0.9 }]}>
-                              • {feature}
-                            </AnimatedText>
-                          ))}
-                        </>
-                      )}
-                    </View>
+                        ))}
+                      </AnimatedView>
+                    )}
                   </TouchableOpacityComponent>
                 </AnimatedView>
               </ScrollView>
