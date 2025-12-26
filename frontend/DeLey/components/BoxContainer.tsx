@@ -11,6 +11,8 @@ import {
   Easing,
 } from "react-native";
 import { Asset } from "expo-asset";
+import { useRouter } from "expo-router";
+import GlowButton from "./GlowButton";
 
 const AdvisorImageAsset = Asset.fromModule(require("../assets/images/AdvisorImage.png"));
 const DebateImageAsset = Asset.fromModule(require("../assets/images/DebateImage.png"));
@@ -35,6 +37,9 @@ interface BoxItem {
   title: string;
   description: string;
   features: string[];
+  route: string;
+  color: string;
+  glowColor: string;
 }
 
 const boxes: BoxItem[] = [
@@ -45,6 +50,9 @@ const boxes: BoxItem[] = [
     title: "Education Module",
     description: "Get expert advice on legal matters.",
     features: ["Free initial chat", "24/7 support", "Expert lawyers"],
+    route: "/tabs/education",
+    color: "#ff6b6b",
+    glowColor: "#ff6b6b",
   },
   {
     id: "2",
@@ -53,6 +61,9 @@ const boxes: BoxItem[] = [
     title: "Debate Module",
     description: "Review your documents securely.",
     features: ["Secure upload", "Quick turnaround", "Detailed feedback"],
+    route: "/tabs/debate",
+    color: "#4ecdc4",
+    glowColor: "#4ecdc4",
   },
   {
     id: "3",
@@ -61,11 +72,15 @@ const boxes: BoxItem[] = [
     title: "Advisor Module",
     description: "Manage your cases efficiently.",
     features: ["Track progress", "Notifications", "Integrated tools"],
+    route: "/tabs/advisor",
+    color: "#45b7d1",
+    glowColor: "#45b7d1",
   },
 ];
 
 export default function BoxContainer() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const router = useRouter();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [flippedCards, setFlippedCards] = useState<{[key: string]: boolean}>({});
   const flatListRef = useRef<RNFlatList>(null);
@@ -414,6 +429,12 @@ export default function BoxContainer() {
                         <AnimatedText style={[styles.description, { opacity: 0.9 }]}>
                           {item.description}
                         </AnimatedText>
+                        <GlowButton
+                          title="Enter Module"
+                          color={item.color}
+                          glowColor={item.glowColor}
+                          onPress={() => router.push(item.route as any)}
+                        />
                       </View>
                     ) : (
                       // Back side - rotated to compensate for card flip
@@ -426,6 +447,12 @@ export default function BoxContainer() {
                             • {feature}
                           </AnimatedText>
                         ))}
+                        <GlowButton
+                          title="Enter Module"
+                          color={item.color}
+                          glowColor={item.glowColor}
+                          onPress={() => router.push(item.route as any)}
+                        />
                       </AnimatedView>
                     )}
                   </TouchableOpacityComponent>
