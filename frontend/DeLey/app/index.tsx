@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import {
   Text as RNText,
   View as RNView,
@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView as RNScrollView,
 } from "react-native";
+import { Asset } from "expo-asset";
 import {
   useFonts as useQuicksand,
   Quicksand_400Regular,
@@ -28,6 +29,7 @@ const LogoImage = require("../assets/images/LogoImage.png");
 import BoxContainer from "../components/BoxContainer";
 import StarsBackground from "../components/StarsBackground";
 import Footer from "../components/Footer";
+import SplashScreen from "../components/SplashScreen";
 
 const Text = RNText as any;
 const View = RNView as any;
@@ -49,8 +51,50 @@ export default function Index() {
     Underdog_400Regular,
   });
 
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+
   const anim = useRef(new Animated.Value(0)).current;
   const loopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  // Load all assets with progress
+  useEffect(() => {
+    const loadAssets = async () => {
+      const assets = [
+        require("../assets/images/LogoImage.png"),
+        require("../assets/images/AdvisorImage.png"),
+        require("../assets/images/DebateImage.png"),
+        require("../assets/images/EducationImage.png"),
+        require("../assets/gifs/AdvisorGif.gif"),
+        require("../assets/gifs/DebateGif.gif"),
+        require("../assets/gifs/EducationGif.gif"),
+      ];
+
+      const totalAssets = assets.length;
+      let loadedCount = 0;
+
+      for (const asset of assets) {
+        try {
+          await Asset.loadAsync(asset);
+          loadedCount++;
+          setLoadingProgress(loadedCount / totalAssets);
+        } catch (error) {
+          console.error("Error loading asset:", error);
+          loadedCount++;
+          setLoadingProgress(loadedCount / totalAssets);
+        }
+      }
+
+      // Wait a bit to show 100%
+      setTimeout(() => {
+        setAssetsLoaded(true);
+      }, 300);
+    };
+
+    if (qLoaded && iLoaded && uLoaded) {
+      loadAssets();
+    }
+  }, [qLoaded, iLoaded, uLoaded]);
 
   const startIdle = useCallback(() => {
     loopRef.current = Animated.loop(
@@ -101,8 +145,13 @@ export default function Index() {
     });
   };
 
-  if (!qLoaded || !iLoaded || !uLoaded) {
-    return null;
+  if (!qLoaded || !iLoaded || !uLoaded || !assetsLoaded) {
+    return (
+      <SplashScreen 
+        progress={loadingProgress} 
+        isComplete={assetsLoaded && qLoaded && iLoaded && uLoaded}
+      />
+    );
   }
   const logoScale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] });
   const logoTranslateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });

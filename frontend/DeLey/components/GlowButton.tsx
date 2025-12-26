@@ -121,6 +121,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 20,
+    width: "100%",
+    maxWidth: 240,
+    alignSelf: "center",
   },
   glow: {
     position: "absolute",
@@ -134,13 +137,13 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   button: {
-    paddingVertical: 14,
-    paddingHorizontal: 32,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     borderRadius: 30,
     borderWidth: 2,
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     backdropFilter: "blur(10px)",
-    minWidth: 200,
+    width: "100%",
   },
   buttonInner: {
     flexDirection: "row",
@@ -148,7 +151,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.5,
     textAlign: "center",
@@ -157,9 +160,9 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   arrow: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
-    marginLeft: 8,
+    marginLeft: 6,
     textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,

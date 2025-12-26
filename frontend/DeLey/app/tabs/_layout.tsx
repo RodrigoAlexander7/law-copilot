@@ -14,6 +14,10 @@ export default function TabsLayout() {
         },
         headerBackTitle: "Back",
         headerShown: true,
+        animation: "slide_from_right",
+        animationDuration: 300,
+        customAnimationOnGesture: true,
+        fullScreenGestureEnabled: true,
       }}
     >
       <Stack.Screen
@@ -23,6 +27,7 @@ export default function TabsLayout() {
           headerStyle: {
             backgroundColor: "#ff6b6b",
           },
+          animation: "fade_from_bottom",
         }}
       />
       <Stack.Screen
@@ -32,6 +37,7 @@ export default function TabsLayout() {
           headerStyle: {
             backgroundColor: "#4ecdc4",
           },
+          animation: "fade_from_bottom",
         }}
       />
       <Stack.Screen
@@ -41,6 +47,7 @@ export default function TabsLayout() {
           headerStyle: {
             backgroundColor: "#45b7d1",
           },
+          animation: "fade_from_bottom",
         }}
       />
     </Stack>

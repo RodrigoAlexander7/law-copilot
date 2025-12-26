@@ -429,12 +429,6 @@ export default function BoxContainer() {
                         <AnimatedText style={[styles.description, { opacity: 0.9 }]}>
                           {item.description}
                         </AnimatedText>
-                        <GlowButton
-                          title="Enter Module"
-                          color={item.color}
-                          glowColor={item.glowColor}
-                          onPress={() => router.push(item.route as any)}
-                        />
                       </View>
                     ) : (
                       // Back side - rotated to compensate for card flip
@@ -447,16 +441,18 @@ export default function BoxContainer() {
                             • {feature}
                           </AnimatedText>
                         ))}
-                        <GlowButton
-                          title="Enter Module"
-                          color={item.color}
-                          glowColor={item.glowColor}
-                          onPress={() => router.push(item.route as any)}
-                        />
                       </AnimatedView>
                     )}
                   </TouchableOpacityComponent>
                 </AnimatedView>
+                
+                {/* Button outside the flippable card */}
+                <GlowButton
+                  title="Enter Module"
+                  color={item.color}
+                  glowColor={item.glowColor}
+                  onPress={() => router.push(item.route as any)}
+                />
               </ScrollView>
             </Animated.View>
           );
@@ -512,11 +508,11 @@ const styles = StyleSheet.create({
     minHeight: "100%", // Altura mínima de la pantalla
   },
   itemContent: {
-    justifyContent: "flex-start",
+    justifyContent: "center",
     alignItems: "center",
     paddingTop: 40,
-    paddingBottom: 80, // Espacio para el footer
-    flex: 1,
+    paddingBottom: 140, // Más espacio para el botón y navegación
+    minHeight: "100%",
   },
   activeItem: {
     opacity: 1,
@@ -551,7 +547,7 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     maxWidth: 300,
     overflow: "visible",
-    minHeight: 450,
+    minHeight: 380,
     borderRadius: 10,
     zIndex: 1,
     position: "relative",
@@ -561,6 +557,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 8,
+    marginBottom: 20,
   },
   blockTouchable: {
     width: "100%",
