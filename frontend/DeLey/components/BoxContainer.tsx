@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   TouchableOpacity,
   ScrollView as RNScrollView,
+  Easing,
 } from "react-native";
 import { Asset } from "expo-asset";
 
@@ -69,6 +70,7 @@ export default function BoxContainer() {
   const [flippedCards, setFlippedCards] = useState<{[key: string]: boolean}>({});
   const flatListRef = useRef<RNFlatList>(null);
   const bgAnim = useRef(new Animated.Value(0)).current;
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   // Descargar assets cuando el componente se monte
   useEffect(() => {
@@ -140,15 +142,42 @@ export default function BoxContainer() {
   };
 
   const [cardRotations, setCardRotations] = useState<{[key: string]: Animated.Value}>({});
+  const [cardEntranceAnims, setCardEntranceAnims] = useState<{[key: string]: Animated.Value}>({});
 
-  // Initialize rotation values for each card
+  // Initialize rotation values and entrance animations for each card
   React.useEffect(() => {
     const rotations: {[key: string]: Animated.Value} = {};
+    const entrances: {[key: string]: Animated.Value} = {};
     boxes.forEach(box => {
       rotations[box.id] = new Animated.Value(0);
+      entrances[box.id] = new Animated.Value(0);
     });
     setCardRotations(rotations);
+    setCardEntranceAnims(entrances);
+    
+    // Animate entrance of first card
+    if (entrances['1']) {
+      Animated.spring(entrances['1'], {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    }
   }, []);
+
+  // Animate card entrance when selectedIndex changes
+  useEffect(() => {
+    const currentCardId = boxes[selectedIndex]?.id;
+    if (currentCardId && cardEntranceAnims[currentCardId]) {
+      Animated.spring(cardEntranceAnims[currentCardId], {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [selectedIndex, cardEntranceAnims]);
 
   // Animated values for nav dots - initialize once so they're available on first render
   const dotAnimsRef = useRef<Animated.Value[]>(boxes.map((_, i) => new Animated.Value(i === 0 ? 1 : 0)));
@@ -159,7 +188,8 @@ export default function BoxContainer() {
     const animations = dotAnimsRef.current.map((av, i) =>
       Animated.timing(av, {
         toValue: i === selectedIndex ? 1 : 0,
-        duration: 260,
+        duration: 400,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
         useNativeDriver: true,
       })
     );
@@ -172,8 +202,8 @@ export default function BoxContainer() {
       const toValue = flippedCards[cardId] ? 0 : 180;
       Animated.spring(rotation, {
         toValue,
-        friction: 8,
-        tension: 10,
+        friction: 9,
+        tension: 20,
         useNativeDriver: true,
       }).start();
     }
@@ -195,7 +225,7 @@ export default function BoxContainer() {
 
   return (
     <View style={[styles.slider, { width: screenWidth, height: screenHeight }]}>
-      <FlatList
+      <Animated.FlatList
         ref={flatListRef}
         data={boxes}
         horizontal
@@ -205,109 +235,207 @@ export default function BoxContainer() {
         onMomentumScrollEnd={_onMomentumScrollEnd}
         onViewableItemsChanged={onViewRef.current}
         viewabilityConfig={viewConfigRef.current}
-        onScroll={(e: any) => {
-          const x = e.nativeEvent.contentOffset.x;
-          const idx = Math.round(x / screenWidth);
-          // eslint-disable-next-line no-console
-          // console.log('[BoxContainer] onScroll idx:', idx, 'offsetX:', x);
-          if (typeof idx === 'number' && idx !== selectedIndex) {
-            setSelectedIndex(idx);
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { 
+            useNativeDriver: true,
+            listener: (e: any) => {
+              const x = e.nativeEvent.contentOffset.x;
+              const idx = Math.round(x / screenWidth);
+              if (typeof idx === 'number' && idx !== selectedIndex) {
+                setSelectedIndex(idx);
+              }
+            }
           }
-        }}
+        )}
         scrollEventThrottle={16}
         keyExtractor={(item: BoxItem) => item.id}
-        renderItem={({ item }: { item: BoxItem }) => (
-          <ScrollView 
-            style={{ width: screenWidth, height: screenHeight }}
-            showsVerticalScrollIndicator={true}
-            bounces={true}
-            contentContainerStyle={styles.itemContent}
-          >
-            {/* TEMP: Background placeholder */}
-            <View style={{
-              position: 'absolute',
-              top: 20,
-              left: 20,
-              right: 20,
-              bottom: 20,
-              backgroundColor: item.id === '1' ? '#ff6b6b' : item.id === '2' ? '#4ecdc4' : '#45b7d1',
-              opacity: 0.8,
-              borderRadius: 20,
-            }} />
+        renderItem={({ item, index }: { item: BoxItem, index: number }) => {
+          // Parallax y animaciones basadas en el scroll
+          const inputRange = [
+            (index - 1) * screenWidth,
+            index * screenWidth,
+            (index + 1) * screenWidth,
+          ];
 
-            {/* Background GIF */}
-            <Image
-              source={item.wallpaper}
-              style={styles.bg}
-              resizeMode="cover"
-              onError={() => console.log('Error loading wallpaper:', item.wallpaper)}
-            />
-            
-            {/* Blurred background */}
-            <Image
-              source={item.wallpaper}
-              style={[styles.blur, { opacity: 0.2 }]}
-              resizeMode="cover"
-            />
+          // Animación de escala para la card
+          const cardScale = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.85, 1, 0.85],
+            extrapolate: 'clamp',
+          });
 
-            {/* Content Block */}
-            <AnimatedView
-              style={[
-                styles.block,
-                pressedCards[item.id] && styles.blockPressed,
-                {
-                  transform: [{
-                    rotateY: cardRotations[item.id]?.interpolate({
-                      inputRange: [0, 180],
-                      outputRange: ['0deg', '180deg']
-                    }) || '0deg'
-                  }]
-                }
-              ]}
+          // Animación de opacidad
+          const cardOpacity = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.3, 1, 0.3],
+            extrapolate: 'clamp',
+          });
+
+          // Parallax para el fondo
+          const parallaxBg = scrollX.interpolate({
+            inputRange,
+            outputRange: [50, 0, -50],
+            extrapolate: 'clamp',
+          });
+
+          // Rotación sutil en Y para efecto 3D
+          const rotateY = scrollX.interpolate({
+            inputRange,
+            outputRange: ['15deg', '0deg', '-15deg'],
+            extrapolate: 'clamp',
+          });
+
+          // Blur effect
+          const blurOpacity = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.6, 0.2, 0.6],
+            extrapolate: 'clamp',
+          });
+
+          // Entrance animation
+          const entranceAnim = cardEntranceAnims[item.id] || new Animated.Value(1);
+          const entranceScale = entranceAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.8, 1],
+          });
+          const entranceOpacity = entranceAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 1],
+          });
+          const entranceTranslateY = entranceAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [50, 0],
+          });
+
+          return (
+            <Animated.View
+              style={{
+                width: screenWidth,
+                height: screenHeight,
+                transform: [{ scale: cardScale }, { perspective: 1000 }],
+                opacity: cardOpacity,
+              }}
             >
-              <TouchableOpacityComponent
-                style={styles.blockTouchable}
-                onPress={() => toggleCardFlip(item.id)}
-                onPressIn={() => handlePressIn(item.id)}
-                onPressOut={() => handlePressOut(item.id)}
-                activeOpacity={0.9}
+              <ScrollView 
+                style={{ width: screenWidth, height: screenHeight }}
+                showsVerticalScrollIndicator={true}
+                bounces={true}
+                contentContainerStyle={styles.itemContent}
               >
-                <View style={[styles.circleLight, { opacity: pressedCards[item.id] ? 0.4 : 0 }]} />
-                <View style={styles.text}>
-                  {!flippedCards[item.id] ? (
-                    // Front side
-                    <>
-                      <Image 
-                        source={item.icon} 
-                        style={styles.icon} 
-                        resizeMode="contain"
-                        onError={() => console.log('Error loading icon:', item.icon)}
-                      />
-                      <AnimatedText style={[styles.title, { opacity: 1 }]}>
-                        {item.title}
-                      </AnimatedText>
-                      <AnimatedText style={[styles.description, { opacity: 0.9 }]}>
-                        {item.description}
-                      </AnimatedText>
-                    </>
-                  ) : (
-                    // Back side
-                    <>
-                      <AnimatedText style={[styles.backTitle, { opacity: 1 }]}>
-                        Features
-                      </AnimatedText>
-                      {item.features.map((feature, index) => (
-                        <AnimatedText key={index} style={[styles.feature, { opacity: 0.9 }]}>
-                          • {feature}
-                        </AnimatedText>
-                      ))}
-                    </>
-                  )}
-                </View>
-              </TouchableOpacityComponent>
-            </AnimatedView>
-          </ScrollView>
-        )}
+                {/* TEMP: Background placeholder */}
+                <View style={{
+                  position: 'absolute',
+                  top: 20,
+                  left: 20,
+                  right: 20,
+                  bottom: 20,
+                  backgroundColor: item.id === '1' ? '#ff6b6b' : item.id === '2' ? '#4ecdc4' : '#45b7d1',
+                  opacity: 0.8,
+                  borderRadius: 20,
+                }} />
+
+                {/* Background GIF with Parallax */}
+                <AnimatedView
+                  style={[
+                    styles.bg,
+                    {
+                      transform: [{ translateX: parallaxBg }],
+                    },
+                  ]}
+                >
+                  <Image
+                    source={item.wallpaper}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                    onError={() => console.log('Error loading wallpaper:', item.wallpaper)}
+                  />
+                </AnimatedView>
+                
+                {/* Blurred background with animated opacity */}
+                <AnimatedView
+                  style={[
+                    styles.blur,
+                    {
+                      opacity: blurOpacity,
+                      transform: [{ translateX: parallaxBg }],
+                    },
+                  ]}
+                >
+                  <Image
+                    source={item.wallpaper}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                </AnimatedView>
+
+                {/* Content Block with 3D rotation */}
+                <AnimatedView
+                  style={[
+                    styles.block,
+                    pressedCards[item.id] && styles.blockPressed,
+                    {
+                      opacity: entranceOpacity,
+                      transform: [
+                        { perspective: 1000 },
+                        { translateY: entranceTranslateY },
+                        { scale: entranceScale },
+                        { rotateY },
+                        {
+                          rotateY: cardRotations[item.id]?.interpolate({
+                            inputRange: [0, 180],
+                            outputRange: ['0deg', '180deg']
+                          }) || '0deg'
+                        }
+                      ]
+                    }
+                  ]}
+                >
+                  <TouchableOpacityComponent
+                    style={styles.blockTouchable}
+                    onPress={() => toggleCardFlip(item.id)}
+                    onPressIn={() => handlePressIn(item.id)}
+                    onPressOut={() => handlePressOut(item.id)}
+                    activeOpacity={0.9}
+                  >
+                    <View style={[styles.circleLight, { opacity: pressedCards[item.id] ? 0.4 : 0 }]} />
+                    <View style={styles.text}>
+                      {!flippedCards[item.id] ? (
+                        // Front side
+                        <>
+                          <Image 
+                            source={item.icon} 
+                            style={styles.icon} 
+                            resizeMode="contain"
+                            onError={() => console.log('Error loading icon:', item.icon)}
+                          />
+                          <AnimatedText style={[styles.title, { opacity: 1 }]}>
+                            {item.title}
+                          </AnimatedText>
+                          <AnimatedText style={[styles.description, { opacity: 0.9 }]}>
+                            {item.description}
+                          </AnimatedText>
+                        </>
+                      ) : (
+                        // Back side
+                        <>
+                          <AnimatedText style={[styles.backTitle, { opacity: 1 }]}>
+                            Features
+                          </AnimatedText>
+                          {item.features.map((feature, index) => (
+                            <AnimatedText key={index} style={[styles.feature, { opacity: 0.9 }]}>
+                              • {feature}
+                            </AnimatedText>
+                          ))}
+                        </>
+                      )}
+                    </View>
+                  </TouchableOpacityComponent>
+                </AnimatedView>
+              </ScrollView>
+            </Animated.View>
+          );
+        }}
       />
         {/* Navigation dots for the slider (moved here from index) */}
         <View style={styles.nav}>
@@ -404,10 +532,10 @@ const styles = StyleSheet.create({
     position: "relative",
     boxSizing: "border-box",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 8,
   },
   blockTouchable: {
     width: "100%",
