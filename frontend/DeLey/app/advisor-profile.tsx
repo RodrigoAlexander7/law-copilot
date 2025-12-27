@@ -38,7 +38,6 @@ export default function AdvisorProfileScreen() {
 
   const [topic, setTopic] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [priority, setPriority] = useState<"Low" | "Medium" | "High">("Medium");
 
   const categories = [
     "Contract Review",
@@ -71,12 +70,12 @@ export default function AdvisorProfileScreen() {
         startedAt: new Date(),
         lastMessage: "Consultation started",
         messageCount: 0,
-        priority: priority,
+        priority: "Medium",
       });
 
       Alert.alert(
         "Consultation Started! 🎯",
-        `${advisor.name} will assist you with your legal matter. Expected response time: ${advisor.responseTime}`,
+        `${advisor.name} will assist you with your legal matter.`,
         [
           {
             text: "Continue",
@@ -127,32 +126,9 @@ export default function AdvisorProfileScreen() {
             <Text style={styles.titleText}>{advisor.title}</Text>
             <View style={styles.ratingRow}>{renderStars()}</View>
             <Text style={styles.ratingText}>
-              {advisor.rating} / 5.0 ({advisor.casesResolved}+ cases)
+              {advisor.rating} / 5.0
             </Text>
           </LinearGradient>
-        </MotiView>
-
-        {/* Quick Stats */}
-        <MotiView
-          from={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", delay: 200 }}
-          style={styles.statsCard}
-        >
-          <View style={styles.statRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{advisor.experience} Years</Text>
-              <Text style={styles.statLabel}>Experience</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{advisor.successRate}%</Text>
-              <Text style={styles.statLabel}>Success Rate</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{advisor.responseTime}</Text>
-              <Text style={styles.statLabel}>Avg Response</Text>
-            </View>
-          </View>
         </MotiView>
 
         {/* About */}
@@ -232,29 +208,6 @@ export default function AdvisorProfileScreen() {
               onChangeText={setTopic}
               multiline
             />
-
-            <Text style={styles.inputLabel}>Priority Level</Text>
-            <View style={styles.priorityContainer}>
-              {(["Low", "Medium", "High"] as const).map((p) => (
-                <TouchableOpacity
-                  key={p}
-                  style={[
-                    styles.priorityButton,
-                    priority === p && styles.priorityButtonActive,
-                  ]}
-                  onPress={() => setPriority(p)}
-                >
-                  <Text
-                    style={[
-                      styles.priorityButtonText,
-                      priority === p && styles.priorityButtonTextActive,
-                    ]}
-                  >
-                    {p}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           </View>
         </View>
 
@@ -350,32 +303,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#cbd5e1",
   },
-  statsCard: {
-    margin: 20,
-    marginTop: 0,
-    backgroundColor: "rgba(30, 30, 40, 0.9)",
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
-  },
-  statRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  statBox: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fbbf24",
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#94a3b8",
-  },
   section: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -466,31 +393,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(251, 191, 36, 0.3)",
     minHeight: 120,
     textAlignVertical: "top",
-  },
-  priorityContainer: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  priorityButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: "rgba(251, 191, 36, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
-    alignItems: "center",
-  },
-  priorityButtonActive: {
-    backgroundColor: "rgba(251, 191, 36, 0.3)",
-    borderColor: "#fbbf24",
-  },
-  priorityButtonText: {
-    fontSize: 13,
-    color: "#94a3b8",
-    fontWeight: "600",
-  },
-  priorityButtonTextActive: {
-    color: "#fbbf24",
   },
   buttonContainer: {
     paddingHorizontal: 20,
