@@ -1,11 +1,13 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
   View as RNView,
   Text as RNText,
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Animated,
 } from "react-native";
+import { MotiView } from "moti";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -28,6 +30,46 @@ interface ModelCardProps {
 }
 
 export default function ModelCard({ model, onStart }: ModelCardProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Subtle glow animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: false,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 4,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const glowOpacity = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7],
+  });
   const handlePress = () => {
     Alert.alert(
       model.name,
@@ -47,47 +89,85 @@ export default function ModelCard({ model, onStart }: ModelCardProps) {
   };
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={handlePress}
-      activeOpacity={0.8}
+    <Animated.View
+      style={[
+        styles.cardWrapper,
+        {
+          transform: [{ scale: scaleAnim }],
+        },
+      ]}
     >
-      <View style={styles.cardContent}>
-        {/* Avatar */}
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatar}>{model.avatar}</Text>
-        </View>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <View style={styles.cardContent}>
+          {/* Avatar */}
+          <MotiView
+            from={{ rotate: "0deg" }}
+            animate={{ rotate: "360deg" }}
+            transition={{
+              type: "timing",
+              duration: 20000,
+              loop: true,
+            }}
+            style={styles.avatarContainer}
+          >
+            <Text style={styles.avatar}>{model.avatar}</Text>
+          </MotiView>
 
-        {/* Info */}
-        <View style={styles.infoContainer}>
-          <Text style={styles.name}>{model.name}</Text>
-          <Text style={styles.specialty}>{model.specialty}</Text>
-          <Text style={styles.personality} numberOfLines={1}>
-            {model.personality}
-          </Text>
+          <View style={styles.infoContainer}>
+            <Text style={styles.name}>{model.name}</Text>
+            <Text style={styles.specialty}>{model.specialty}</Text>
+            <Text style={styles.personality} numberOfLines={1}>
+              {model.personality}
+            </Text>
 
-          {/* Tags */}
-          <View style={styles.tagsContainer}>
-            {model.tags.slice(0, 3).map((tag, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
+            {/* Tags */}
+            <View style={styles.tagsContainer}>
+              {model.tags.slice(0, 3).map((tag, index) => (
+                <MotiView
+                  key={index}
+                  from={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{
+                    type: "spring",
+                    delay: index * 100,
+                  }}
+                >
+                  <View style={styles.tag}>
+                    <Text style={styles.tagText}>{tag}</Text>
+                  </View>
+                </MotiView>
+              ))}
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Glowing border effect */}
-      <View style={styles.glowBorder} />
-    </TouchableOpacity>
+        {/* Glowing border effect */}
+        <Animated.View
+          style={[
+            styles.glowBorder,
+            {
+              opacity: glowOpacity,
+            },
+          ]}
+        />
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  cardWrapper: {
+    marginBottom: 16,
+  },
   card: {
     backgroundColor: "rgba(20, 20, 30, 0.8)",
     borderRadius: 16,
-    marginBottom: 16,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "rgba(255, 107, 107, 0.3)",

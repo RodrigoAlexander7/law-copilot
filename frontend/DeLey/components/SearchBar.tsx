@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View as RNView,
   Text as RNText,
@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView as RNScrollView,
+  Animated,
 } from "react-native";
+import { MotiView } from "moti";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -26,6 +28,43 @@ export default function SearchBar({
 }: SearchBarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isFocused, setIsFocused] = useState(false);
+  const borderAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Animate border on focus
+    Animated.timing(borderAnim, {
+      toValue: isFocused ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [isFocused]);
+
+  useEffect(() => {
+    // Pulse animation when there are selected tags
+    if (selectedTags.length > 0) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [selectedTags.length]);
+
+  const borderColor = borderAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["rgba(255, 107, 107, 0.3)", "rgba(255, 107, 107, 0.8)"],
+  });
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -43,7 +82,14 @@ export default function SearchBar({
   return (
     <View style={styles.container}>
       {/* Search Input */}
-      <View style={styles.searchContainer}>
+      <Animated.View
+        style={[
+          styles.searchContainer,
+          {
+            borderColor: borderColor,
+          },
+        ]}
+      >
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={styles.input}
@@ -51,16 +97,24 @@ export default function SearchBar({
           placeholderTextColor="rgba(255, 255, 255, 0.4)"
           value={searchQuery}
           onChangeText={handleSearch}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity
-            onPress={() => handleSearch("")}
-            style={styles.clearButton}
+          <MotiView
+            from={{ scale: 0, rotate: "0deg" }}
+            animate={{ scale: 1, rotate: "360deg" }}
+            transition={{ type: "spring" }}
           >
-            <Text style={styles.clearIcon}>✕</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleSearch("")}
+              style={styles.clearButton}
+            >
+              <Text style={styles.clearIcon}>✕</Text>
+            </TouchableOpacity>
+          </MotiView>
         )}
-      </View>
+      </Animated.View>
 
       {/* Filter Tags */}
       <ScrollView
@@ -72,33 +126,51 @@ export default function SearchBar({
         {availableTags.map((tag, index) => {
           const isSelected = selectedTags.includes(tag);
           return (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.filterTag,
-                isSelected && styles.filterTagSelected,
-              ]}
-              onPress={() => toggleTag(tag)}
+            <MotiView
+              key={tag}
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{
+                type: "spring",
+                delay: index * 50,
+              }}
             >
-              <Text
+              <TouchableOpacity
                 style={[
-                  styles.filterTagText,
-                  isSelected && styles.filterTagTextSelected,
+                  styles.filterTag,
+                  isSelected && styles.filterTagSelected,
                 ]}
+                onPress={() => toggleTag(tag)}
               >
-                {tag}
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.filterTagText,
+                    isSelected && styles.filterTagTextSelected,
+                  ]}
+                >
+                  {tag}
+                </Text>
+              </TouchableOpacity>
+            </MotiView>
           );
         })}
       </ScrollView>
 
       {/* Active filters indicator */}
       {selectedTags.length > 0 && (
-        <View style={styles.activeFiltersContainer}>
-          <Text style={styles.activeFiltersText}>
-            {selectedTags.length} filter{selectedTags.length > 1 ? "s" : ""} active
-          </Text>
+        <MotiView
+          from={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ type: "timing", duration: 300 }}
+          style={styles.activeFiltersContainer}
+        >
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <Text style={styles.activeFiltersText}>
+              {selectedTags.length} filter{selectedTags.length > 1 ? "s" : ""}{" "}
+              active
+            </Text>
+          </Animated.View>
           <TouchableOpacity
             onPress={() => {
               setSelectedTags([]);
@@ -107,7 +179,7 @@ export default function SearchBar({
           >
             <Text style={styles.clearFiltersText}>Clear all</Text>
           </TouchableOpacity>
-        </View>
+        </MotiView>
       )}
     </View>
   );
