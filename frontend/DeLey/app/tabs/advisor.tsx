@@ -1,63 +1,206 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   View as RNView,
   Text as RNText,
   StyleSheet,
   ScrollView as RNScrollView,
-  Image as RNImage,
+  TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { MotiView } from "moti";
+import { LinearGradient } from "expo-linear-gradient";
 import StarsBackground from "../../components/StarsBackground";
+import SearchBar from "../../components/SearchBar";
+import AdvisorCard, { LegalAdvisor } from "../../components/AdvisorCard";
+import ConsultationHistory, {
+  Consultation,
+} from "../../components/ConsultationHistory";
 
 const View = RNView as any;
 const Text = RNText as any;
 const ScrollView = RNScrollView as any;
-const Image = RNImage as any;
 
-const AdvisorImage = require("../../assets/images/AdvisorImage.png");
+// AI Legal Advisors Database
+const LEGAL_ADVISORS: LegalAdvisor[] = [
+  {
+    id: "1",
+    name: "Constitutional AI Advisor",
+    avatar: "⚖️",
+    title: "Corporate & Contract Law Specialist",
+    specialties: [
+      "Corporate Law",
+      "Contract Negotiation",
+      "Mergers & Acquisitions",
+      "Intellectual Property",
+    ],
+    rating: 4.9,
+    languages: ["English", "Spanish", "French"],
+    tags: ["Corporate", "Contracts", "IP", "M&A", "Expert"],
+    description:
+      "An advanced AI legal assistant specialized in corporate law and business transactions. Trained on extensive case law and legal frameworks to provide comprehensive guidance on complex business matters, contracts, and intellectual property issues.",
+  },
+  {
+    id: "2",
+    name: "Criminal Defense AI Counsel",
+    avatar: "🛡️",
+    title: "Criminal Law & Defense Specialist",
+    specialties: [
+      "Criminal Defense",
+      "White Collar Crime",
+      "DUI Cases",
+      "Appeals",
+    ],
+    rating: 4.7,
+    languages: ["English", "Spanish"],
+    tags: ["Criminal", "Defense", "Appeals", "DUI"],
+    description:
+      "A sophisticated AI advisor trained in criminal law and defense strategies. Provides detailed analysis of criminal cases, defense tactics, and legal precedents to help you understand your rights and legal options in criminal matters.",
+  },
+  {
+    id: "3",
+    name: "Family Law AI Advisor",
+    avatar: "👨‍👩‍👧‍👦",
+    title: "Family Law & Domestic Relations Specialist",
+    specialties: [
+      "Divorce",
+      "Child Custody",
+      "Adoption",
+      "Domestic Relations",
+    ],
+    rating: 4.8,
+    languages: ["English", "Mandarin", "Cantonese"],
+    tags: ["Family Law", "Divorce", "Custody", "Adoption", "Compassionate"],
+    description:
+      "An empathetic AI legal assistant specialized in family law matters. Trained to provide sensitive, comprehensive guidance on divorce, custody, adoption, and other family-related legal issues with a focus on finding balanced solutions.",
+  },
+];
+
+// Get all unique tags
+const ALL_TAGS = Array.from(
+  new Set(LEGAL_ADVISORS.flatMap((advisor) => advisor.tags))
+).sort();
 
 export default function AdvisorModule() {
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [refreshHistory, setRefreshHistory] = useState(0);
+
+  // Filter advisors
+  const filteredAdvisors = useMemo(() => {
+    let filtered = LEGAL_ADVISORS;
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (advisor) =>
+          advisor.name.toLowerCase().includes(query) ||
+          advisor.title.toLowerCase().includes(query) ||
+          advisor.specialties.some((s) => s.toLowerCase().includes(query)) ||
+          advisor.tags.some((tag) => tag.toLowerCase().includes(query))
+      );
+    }
+
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((advisor) =>
+        selectedTags.every((tag) => advisor.tags.includes(tag))
+      );
+    }
+
+    // Sort by rating (highest first)
+    return filtered.sort((a, b) => b.rating - a.rating);
+  }, [searchQuery, selectedTags]);
+
+  const handleAdvisorPress = (advisor: LegalAdvisor) => {
+    router.push({
+      pathname: "/advisor-profile",
+      params: { advisor: JSON.stringify(advisor) },
+    });
+  };
+
+  const handleContinueConsultation = (consultation: Consultation) => {
+    console.log("Continue consultation:", consultation);
+  };
+
+  const handleDeleteConsultation = (consultationId: string) => {
+    setRefreshHistory((prev) => prev + 1);
+  };
 
   return (
     <View style={styles.container}>
       <StarsBackground />
-      <ScrollView 
+
+      <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={true}
       >
-        <View style={styles.hero}>
-          <Image source={AdvisorImage} style={styles.heroImage} resizeMode="contain" />
-          <Text style={styles.title}>Advisor Module</Text>
-          <Text style={styles.subtitle}>
-            Get personalized legal guidance from your AI assistant
-          </Text>
+        {/* Header */}
+        <MotiView
+          from={{ opacity: 0, translateY: -30 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "spring", duration: 800 }}
+        >
+          <LinearGradient
+            colors={["rgba(251, 191, 36, 0.15)", "rgba(245, 158, 11, 0.05)"]}
+            style={styles.header}
+          >
+            <Text style={styles.title}>AI Legal Advisory</Text>
+            <Text style={styles.subtitle}>
+              AI-powered legal advisors trained in various legal specialties
+            </Text>
+          </LinearGradient>
+        </MotiView>
+
+        {/* Search and Tags */}
+        <SearchBar
+          onSearch={setSearchQuery}
+          onFilterChange={setSelectedTags}
+          availableTags={ALL_TAGS}
+        />
+
+        {/* Advisors Section */}
+        <View style={styles.advisorsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              AI Advisors ({filteredAdvisors.length})
+            </Text>
+            {filteredAdvisors.length > 0 && (
+              <Text style={styles.sectionSubtitle}>
+                Available 24/7
+              </Text>
+            )}
+          </View>
+
+          {filteredAdvisors.length > 0 ? (
+            filteredAdvisors.map((advisor, index) => (
+              <AdvisorCard
+                key={advisor.id}
+                advisor={advisor}
+                onPress={handleAdvisorPress}
+                index={index}
+              />
+            ))
+          ) : (
+            <MotiView
+              from={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={styles.emptyState}
+            >
+              <Text style={styles.emptyIcon}>🔍</Text>
+              <Text style={styles.emptyText}>No advisors match your filters</Text>
+              <Text style={styles.emptySubtext}>
+                Try adjusting your search or clearing filters
+              </Text>
+            </MotiView>
+          )}
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>🤝 Personal Guidance</Text>
-          <Text style={styles.cardDescription}>
-            Receive tailored advice based on your specific legal questions and situations.
-          </Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>💡 Key Features</Text>
-          <Text style={styles.cardDescription}>
-            • 24/7 AI assistance{"\n"}
-            • Personalized recommendations{"\n"}
-            • Document analysis{"\n"}
-            • Case strategy suggestions
-          </Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>🎯 Get Expert Help</Text>
-          <Text style={styles.cardDescription}>
-            Ask questions, upload documents, or describe your situation. Our AI
-            advisor will provide clear, actionable guidance.
-          </Text>
-        </View>
+        {/* Consultation History */}
+        <ConsultationHistory
+          onContinue={handleContinueConsultation}
+          onDelete={handleDeleteConsultation}
+          refreshTrigger={refreshHistory}
+        />
       </ScrollView>
     </View>
   );
@@ -69,18 +212,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#0a0a0a",
   },
   content: {
-    padding: 20,
     paddingBottom: 40,
   },
-  hero: {
+  header: {
     alignItems: "center",
-    marginBottom: 30,
     paddingTop: 20,
-  },
-  heroImage: {
-    width: 200,
-    height: 200,
-    marginBottom: 20,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(251, 191, 36, 0.2)",
   },
   title: {
     fontSize: 32,
@@ -88,7 +228,7 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     textAlign: "center",
     marginBottom: 10,
-    textShadowColor: "rgba(69, 183, 209, 0.5)",
+    textShadowColor: "rgba(251, 191, 36, 0.5)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
   },
@@ -96,25 +236,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#e2e8f0",
     textAlign: "center",
+    lineHeight: 22,
+  },
+  advisorsSection: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 24,
+  },
+  sectionHeader: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#ffffff",
+    marginBottom: 4,
+    textShadowColor: "rgba(251, 191, 36, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: "#fbbf24",
+    fontWeight: "600",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 50,
     paddingHorizontal: 20,
   },
-  card: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+  emptyIcon: {
+    fontSize: 56,
+    marginBottom: 16,
   },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "600",
     color: "#ffffff",
-    marginBottom: 10,
+    marginBottom: 8,
+    textAlign: "center",
   },
-  cardDescription: {
+  emptySubtext: {
     fontSize: 14,
-    color: "#cbd5e0",
-    lineHeight: 22,
+    color: "#94a3b8",
+    textAlign: "center",
   },
 });
