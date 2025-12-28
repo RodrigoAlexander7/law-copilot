@@ -1,5 +1,17 @@
 fastapi
 uvicorn[standard]
 pydantic
+pydantic-settings
 langchain
 openai
+
+# PDF Processing
+PyMuPDF
+pdfplumber
+
+# Embeddings & Vector Store
+sentence-transformers
+faiss-cpu
+
+# Utils
+python-dotenv
