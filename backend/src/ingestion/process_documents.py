@@ -14,6 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from src.core.config import settings
 from src.ingestion.constitution_parser import parse_constitution
+from src.ingestion.civil_code_parser import parse_civil_code
+from src.ingestion.violence_law_parser import parse_violence_law
 from src.ingestion.models import LegalArticle
 
 
@@ -84,6 +86,72 @@ def process_constitution():
     return parser
 
 
+def process_civil_code():
+    """Procesa el Código Civil del Perú."""
+    print("\n" + "="*60)
+    print("📕 Procesando: Código Civil del Perú")
+    print("="*60)
+    
+    pdf_path = settings.RAW_DIR / "codigo_civil.pdf"
+    
+    if not pdf_path.exists():
+        print(f"❌ Error: No se encontró el archivo {pdf_path}")
+        return None
+    
+    print(f"📖 Leyendo PDF: {pdf_path}")
+    parser = parse_civil_code(pdf_path)
+    
+    print(f"📊 Artículos encontrados: {len(parser.articles)}")
+    
+    # Mostrar resumen por libro
+    libros = {}
+    for article in parser.articles:
+        libro = article.hierarchy.level_1 or "Sin Libro"
+        libros[libro] = libros.get(libro, 0) + 1
+    
+    print("\n📋 Distribución por Libro:")
+    for libro, count in libros.items():
+        print(f"   - {libro}: {count} artículos")
+    
+    output_file = settings.PROCESSED_DIR / "codigo_civil.json"
+    save_articles_to_json(parser.articles, output_file)
+    
+    return parser
+
+
+def process_violence_law():
+    """Procesa la Ley 30364 - Violencia contra la Mujer."""
+    print("\n" + "="*60)
+    print("📗 Procesando: Ley 30364 - Violencia contra la Mujer")
+    print("="*60)
+    
+    pdf_path = settings.RAW_DIR / "ley_violencia_contra_mujer.pdf"
+    
+    if not pdf_path.exists():
+        print(f"❌ Error: No se encontró el archivo {pdf_path}")
+        return None
+    
+    print(f"📖 Leyendo PDF: {pdf_path}")
+    parser = parse_violence_law(pdf_path)
+    
+    print(f"📊 Artículos encontrados: {len(parser.articles)}")
+    
+    # Mostrar resumen por título
+    titulos = {}
+    for article in parser.articles:
+        titulo = article.hierarchy.level_1 or "Sin Título"
+        titulos[titulo] = titulos.get(titulo, 0) + 1
+    
+    print("\n📋 Distribución por Título:")
+    for titulo, count in titulos.items():
+        print(f"   - {titulo}: {count} artículos")
+    
+    output_file = settings.PROCESSED_DIR / "ley_30364_violencia_mujer.json"
+    save_articles_to_json(parser.articles, output_file)
+    
+    return parser
+
+
 def main():
     """Función principal de procesamiento."""
     print("\n🚀 Iniciando procesamiento de documentos legales")
@@ -93,6 +161,13 @@ def main():
     # Procesar Constitución
     constitution_parser = process_constitution()
     
+    # Procesar Código Civil
+    civil_code_parser = process_civil_code()
+    
+    # Procesar Ley 30364
+    violence_law_parser = process_violence_law()
+    
+    # Mostrar ejemplo de artículo procesado (de la Constitución)
     if constitution_parser and constitution_parser.articles:
         # Mostrar ejemplo de artículo procesado
         print("\n" + "="*60)
