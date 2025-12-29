@@ -1,0 +1,12 @@
+{
+  "total_documents": 2573,
+  "embedding_dim": 384,
+  "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "sources": [
+    "constitucion_1993",
+    "codigo_proteccion_consumidor_29571",
+    "codigo_civil",
+    "ley_30364_violencia_mujer"
+  ],
+  "index_type": "IndexFlatIP"
+}

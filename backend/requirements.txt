@@ -9,9 +9,15 @@ openai
 PyMuPDF
 pdfplumber
 
-# Embeddings & Vector Store
-sentence-transformers
-faiss-cpu
-
-# Utils
+# Utils ins
 python-dotenv
+
+# To generate embeddings and handle vectors
+sentence-transformers 
+# To generate database for vector storage
+faiss-cpu 
+
+# numpy cause is used by faiss andd ensure datatype compatibility
+numpy 
+# just to show progress bars during document processing lol
+tqdm

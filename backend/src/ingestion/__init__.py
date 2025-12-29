@@ -16,9 +16,17 @@ from src.ingestion.pdf_parser import (
     TextCleaner,
     BaseLegalParser
 )
-from src.ingestion.constitution_parser import (
+from src.ingestion.parsers.constitution_parser import (
     ConstitutionParser,
     parse_constitution
+)
+from src.ingestion.parsers.civil_code_parser import (
+    CivilCodeParser,
+    parse_civil_code
+)
+from src.ingestion.parsers.violence_law_parser import (
+    ViolenceLawParser,
+    parse_violence_law
 )
 
 __all__ = [
@@ -36,4 +44,10 @@ __all__ = [
     # Constitution Parser
     "ConstitutionParser",
     "parse_constitution",
+    # Civil Code Parser
+    "CivilCodeParser",
+    "parse_civil_code",
+    # Violence Law Parser
+    "ViolenceLawParser",
+    "parse_violence_law",
 ]

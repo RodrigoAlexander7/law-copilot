@@ -13,9 +13,9 @@ from datetime import date
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from src.core.config import settings
-from src.ingestion.constitution_parser import parse_constitution
-from src.ingestion.civil_code_parser import parse_civil_code
-from src.ingestion.violence_law_parser import parse_violence_law
+from backend.src.ingestion.parsers.constitution_parser import parse_constitution
+from backend.src.ingestion.parsers.civil_code_parser import parse_civil_code
+from backend.src.ingestion.parsers.violence_law_parser import parse_violence_law
 from src.ingestion.models import LegalArticle
 
 
