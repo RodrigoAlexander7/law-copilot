@@ -6,7 +6,7 @@ Microservicio para procesamiento de audio y comunicación con RAG.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.api.routes import router
-from src.core.config import settings
+from src.core.config import settings, setup_google_credentials
 import logging
 
 # Configurar logging
@@ -41,11 +41,15 @@ app.include_router(router)
 @app.on_event("startup")
 async def startup_event():
     """Log de inicio del servicio."""
+    # Configurar credenciales de Google Cloud si están en variable de entorno
+    setup_google_credentials()
+    
     logger.info("="*60)
     logger.info("🚀 Audio Service iniciado")
     logger.info(f"📍 Puerto: {settings.port}")
     logger.info(f"🌍 Entorno: {settings.environment}")
     logger.info(f"🔗 RAG Service: {settings.rag_service_url}")
+    logger.info(f"🧪 Mock RAG: {settings.mock_rag}")
     logger.info(f"🎙️ ElevenLabs: Configurado")
     logger.info(f"🔊 Google Cloud: Configurado")
     logger.info("="*60)
