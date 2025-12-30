@@ -14,6 +14,7 @@ import ConversationHistory, {
   Conversation,
   saveConversation,
 } from "../../components/ConversationHistory";
+import LoadingOverlay from "../../components/LoadingOverlay";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -72,6 +73,7 @@ export default function EducationModule() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [refreshHistory, setRefreshHistory] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Filter models based on search and tags
   const filteredModels = useMemo(() => {
@@ -100,6 +102,8 @@ export default function EducationModule() {
 
   const handleStartLearning = async (model: LegalModel) => {
     try {
+      setIsLoading(true);
+      
       // Save conversation to local storage
       const conversationId = await saveConversation({
         modelName: model.name,
@@ -112,12 +116,18 @@ export default function EducationModule() {
       // Refresh history
       setRefreshHistory((prev) => prev + 1);
 
+      // Mantener loading visible un momento más
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      setIsLoading(false);
+      
       Alert.alert(
         "Session Started! 🎓",
         `You're now learning with ${model.name}. In a full implementation, this would open a chat interface.`,
         [{ text: "Got it!", style: "default" }]
       );
     } catch (error) {
+      setIsLoading(false);
       Alert.alert("Error", "Failed to start conversation. Please try again.");
     }
   };
@@ -189,6 +199,12 @@ export default function EducationModule() {
           refreshTrigger={refreshHistory}
         />
       </ScrollView>
+      
+      {/* Loading Overlay */}
+      <LoadingOverlay 
+        visible={isLoading} 
+        message="Starting learning session..." 
+      />
     </View>
   );
 }

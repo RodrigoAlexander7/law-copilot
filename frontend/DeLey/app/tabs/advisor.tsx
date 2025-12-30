@@ -15,6 +15,7 @@ import AdvisorCard, { LegalAdvisor } from "../../components/AdvisorCard";
 import ConsultationHistory, {
   Consultation,
 } from "../../components/ConsultationHistory";
+import LoadingOverlay from "../../components/LoadingOverlay";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -85,6 +86,7 @@ export default function AdvisorModule() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [refreshHistory, setRefreshHistory] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Filter advisors
   const filteredAdvisors = useMemo(() => {
@@ -111,11 +113,21 @@ export default function AdvisorModule() {
     return filtered.sort((a, b) => b.rating - a.rating);
   }, [searchQuery, selectedTags]);
 
-  const handleAdvisorPress = (advisor: LegalAdvisor) => {
+  const handleAdvisorPress = async (advisor: LegalAdvisor) => {
+    setIsLoading(true);
+    
+    // Pequeño delay antes de navegar
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
     router.push({
       pathname: "/advisor-profile",
       params: { advisor: JSON.stringify(advisor) },
     });
+    
+    // Mantener loading visible hasta que la navegación se complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setIsLoading(false);
   };
 
   const handleContinueConsultation = (consultation: Consultation) => {
@@ -202,6 +214,12 @@ export default function AdvisorModule() {
           refreshTrigger={refreshHistory}
         />
       </ScrollView>
+      
+      {/* Loading Overlay */}
+      <LoadingOverlay 
+        visible={isLoading} 
+        message="Connecting to advisor..." 
+      />
     </View>
   );
 }

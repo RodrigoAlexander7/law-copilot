@@ -11,6 +11,7 @@ import StarsBackground from "../../components/StarsBackground";
 import SearchBar from "../../components/SearchBar";
 import DebateModelCard, { DebateModel } from "../../components/DebateModelCard";
 import DebateHistory, { DebateConfig } from "../../components/DebateHistory";
+import LoadingOverlay from "../../components/LoadingOverlay";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -63,6 +64,7 @@ export default function DebateModule() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [refreshHistory, setRefreshHistory] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Filter models
   const filteredModels = useMemo(() => {
@@ -87,12 +89,22 @@ export default function DebateModule() {
     return filtered;
   }, [searchQuery, selectedTags]);
 
-  const handleModelPress = (model: DebateModel) => {
+  const handleModelPress = async (model: DebateModel) => {
+    setIsLoading(true);
+    
+    // Pequeño delay antes de navegar
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
     // Navigate to config screen with model data
     router.push({
       pathname: "/debate-config",
       params: { model: JSON.stringify(model) },
     });
+    
+    // Mantener loading visible hasta que la navegación se complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setIsLoading(false);
   };
 
   const handleContinueDebate = (config: DebateConfig) => {
@@ -169,6 +181,12 @@ export default function DebateModule() {
           refreshTrigger={refreshHistory}
         />
       </ScrollView>
+      
+      {/* Loading Overlay */}
+      <LoadingOverlay 
+        visible={isLoading} 
+        message="Preparing debate arena..." 
+      />
     </View>
   );
 }

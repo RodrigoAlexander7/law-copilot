@@ -13,6 +13,7 @@ import {
 import { Asset } from "expo-asset";
 import { useRouter } from "expo-router";
 import GlowButton from "./GlowButton";
+import LoadingOverlay from "./LoadingOverlay";
 
 const AdvisorImageAsset = Asset.fromModule(require("../assets/images/AdvisorImage.png"));
 const DebateImageAsset = Asset.fromModule(require("../assets/images/DebateImage.png"));
@@ -83,6 +84,7 @@ export default function BoxContainer() {
   const router = useRouter();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [flippedCards, setFlippedCards] = useState<{[key: string]: boolean}>({});
+  const [isLoading, setIsLoading] = useState(false);
   const flatListRef = useRef<RNFlatList>(null);
   const bgAnim = useRef(new Animated.Value(0)).current;
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -236,6 +238,21 @@ export default function BoxContainer() {
 
   const handlePressOut = (cardId: string) => {
     setPressedCards(prev => ({ ...prev, [cardId]: false }));
+  };
+
+  const handleEnterModule = async (route: string) => {
+    setIsLoading(true);
+    
+    // Pequeño delay antes de navegar
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Navegar
+    router.push(route as any);
+    
+    // Mantener el loading visible hasta que la navegación se complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setIsLoading(false);
   };
 
   return (
@@ -451,7 +468,7 @@ export default function BoxContainer() {
                   title="Enter Module"
                   color={item.color}
                   glowColor={item.glowColor}
-                  onPress={() => router.push(item.route as any)}
+                  onPress={() => handleEnterModule(item.route)}
                 />
               </ScrollView>
             </Animated.View>
@@ -486,6 +503,12 @@ export default function BoxContainer() {
             );
           })}
         </View>
+      
+      {/* Loading Overlay */}
+      <LoadingOverlay 
+        visible={isLoading} 
+        message="Preparing module..." 
+      />
     </View>
   );
 }
