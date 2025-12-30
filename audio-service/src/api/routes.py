@@ -29,7 +29,70 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/api/process-query", response_model=ProcessQueryResponse)
+@router.post(
+    "/api/process-query",
+    response_model=ProcessQueryResponse,
+    tags=["Main"],
+    summary="Procesar Consulta Legal",
+    description="""
+    Procesa una consulta legal completa desde el usuario, manejando conversión de audio/texto y comunicación con RAG.
+    
+    ### Funcionamiento
+    
+    Este endpoint orquesta el flujo completo de una consulta:
+    
+    1. **Entrada**: Recibe texto o audio del usuario
+    2. **Transcripción**: Si es audio, convierte a texto usando STT (ElevenLabs o Google)
+    3. **Consulta RAG**: Envía la pregunta al servicio RAG según el módulo seleccionado
+    4. **Síntesis de Voz**: Convierte la respuesta a audio usando TTS apropiado
+    5. **Respuesta**: Retorna texto + audio en formato base64
+    
+    ### Selección de Servicios
+    
+    - **Módulo Simulation**: Intenta usar ElevenLabs (más expresivo), fallback a Google
+    - **Módulos Teaching/Advisor**: Usa Google TTS (más estable)
+    
+    ### Ejemplo de Uso
+    
+    ```json
+    {
+      "text": "¿Qué establece el artículo 2 de la constitución?",
+      "module_type": "teaching"
+    }
+    ```
+    
+    O con audio:
+    
+    ```json
+    {
+      "audio_base64": "UklGRiQAAABXQVZFZm10...",
+      "module_type": "advisor"
+    }
+    ```
+    """,
+    response_description="Respuesta del RAG en texto y audio, con métricas de procesamiento",
+    responses={
+        200: {
+            "description": "Consulta procesada exitosamente",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "text_response": "El artículo 2 de la Constitución establece los derechos fundamentales...",
+                        "audio_base64": "UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=",
+                        "service_used": "google",
+                        "processing_time_ms": 1250
+                    }
+                }
+            }
+        },
+        400: {
+            "description": "Request inválido - debe proporcionar texto o audio"
+        },
+        500: {
+            "description": "Error interno del servidor o servicios externos"
+        }
+    }
+)
 async def process_query(request: ProcessQueryRequest):
     """
     Endpoint principal: Procesa consulta del usuario (texto o audio).
@@ -118,7 +181,57 @@ async def process_query(request: ProcessQueryRequest):
         )
 
 
-@router.post("/internal/tts", response_model=TTSResponse)
+@router.post(
+    "/internal/tts",
+    response_model=TTSResponse,
+    tags=["Internal"],
+    summary="Text-to-Speech Interno",
+    description="""
+    Convierte texto a audio utilizando servicios TTS (Text-to-Speech).
+    
+    ### Propósito
+    
+    Este endpoint está diseñado para uso interno del sistema, permitiendo que otros servicios
+    (como el RAG service) generen audio directamente sin pasar por el flujo completo.
+    
+    ### Selección de Voz
+    
+    - **Simulation**: Voz expresiva de ElevenLabs (fallback a Google si falla)
+    - **Teaching/Advisor**: Voz profesional de Google TTS
+    
+    ### Formato de Audio
+    
+    - Salida: MP3 codificado en base64
+    - Calidad: Alta fidelidad
+    - Idioma: Español (configurado en servicios)
+    
+    ### Ejemplo
+    
+    ```json
+    {
+      "text": "Esta es la respuesta legal que necesita convertirse a audio.",
+      "module_type": "advisor"
+    }
+    ```
+    """,
+    response_description="Audio generado en formato base64 con información del servicio usado",
+    responses={
+        200: {
+            "description": "Audio generado exitosamente",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "audio_base64": "UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=",
+                        "service_used": "google"
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "Error en la conversión TTS"
+        }
+    }
+)
 async def internal_tts(request: TTSRequest):
     """
     Endpoint interno: Convierte texto a audio.
@@ -154,7 +267,56 @@ async def internal_tts(request: TTSRequest):
         )
 
 
-@router.post("/internal/stt", response_model=STTResponse)
+@router.post(
+    "/internal/stt",
+    response_model=STTResponse,
+    tags=["Internal"],
+    summary="Speech-to-Text Interno",
+    description="""
+    Transcribe audio a texto utilizando servicios STT (Speech-to-Text).
+    
+    ### Propósito
+    
+    Endpoint interno para transcripción de audio sin procesar la consulta completa.
+    Útil cuando solo se necesita la transcripción del audio sin enviar al RAG.
+    
+    ### Servicios Disponibles
+    
+    1. **ElevenLabs STT** (primario): Mayor precisión en español
+    2. **Google Cloud Speech** (fallback): Alta disponibilidad y confiabilidad
+    
+    ### Formatos Aceptados
+    
+    - Audio codificado en base64
+    - Formatos soportados: MP3, WAV, OGG, FLAC
+    - Duración máxima recomendada: 60 segundos
+    
+    ### Ejemplo
+    
+    ```json
+    {
+      "audio_base64": "UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA="
+    }
+    ```
+    """,
+    response_description="Texto transcrito del audio con información del servicio utilizado",
+    responses={
+        200: {
+            "description": "Audio transcrito exitosamente",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "text": "¿Qué establece el artículo 2 de la constitución peruana?",
+                        "service_used": "elevenlabs"
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "Error en la transcripción STT"
+        }
+    }
+)
 async def internal_stt(request: STTRequest):
     """
     Endpoint interno: Convierte audio a texto.
@@ -186,7 +348,59 @@ async def internal_stt(request: STTRequest):
         )
 
 
-@router.get("/api/health", response_model=HealthCheckResponse)
+@router.get(
+    "/api/health",
+    response_model=HealthCheckResponse,
+    tags=["Health"],
+    summary="Verificación de Estado",
+    description="""
+    Verifica el estado de salud de todos los servicios y dependencias del Audio Service.
+    
+    ### Componentes Verificados
+    
+    1. **ElevenLabs**: Servicio de TTS/STT premium
+    2. **Google TTS**: Servicio de síntesis de voz de Google Cloud
+    3. **Google STT**: Servicio de reconocimiento de voz de Google Cloud
+    4. **RAG Service**: Servicio de recuperación y generación de respuestas
+    
+    ### Estados Posibles
+    
+    - **healthy**: Todos los servicios funcionando correctamente
+    - **degraded**: Uno o más servicios con problemas (puede seguir operando con fallbacks)
+    - **connected**: Servicio individual disponible
+    - **error**: Servicio individual no disponible
+    - **unreachable**: Servicio no responde
+    
+    ### Uso
+    
+    Este endpoint es útil para:
+    - Monitoreo de sistemas
+    - Health checks de Kubernetes/Docker
+    - Diagnóstico de problemas
+    - Verificación pre-deployment
+    """,
+    response_description="Estado detallado de todos los servicios con timestamp",
+    responses={
+        200: {
+            "description": "Estado de servicios obtenido exitosamente",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "status": "healthy",
+                        "elevenlabs": "connected",
+                        "google_tts": "connected",
+                        "google_stt": "connected",
+                        "rag_service": "connected",
+                        "timestamp": "2025-12-29T10:30:00.000Z"
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "Error al verificar el estado de los servicios"
+        }
+    }
+)
 async def health_check():
     """
     Verifica el estado de todos los servicios.

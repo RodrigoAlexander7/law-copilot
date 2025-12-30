@@ -16,13 +16,61 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Crear aplicación FastAPI
+# Crear aplicación FastAPI con documentación Swagger completa
 app = FastAPI(
     title="Audio Service - Legal Assistant",
-    description="Microservicio de procesamiento de audio (TTS/STT) con integración a RAG",
+    description="""
+    # Microservicio de Procesamiento de Audio
+    
+    Este servicio maneja la conversión de texto a voz (TTS) y voz a texto (STT) para el asistente legal.
+    
+    ## Características Principales
+    
+    - **Text-to-Speech (TTS)**: Convierte respuestas de texto a audio natural
+    - **Speech-to-Text (STT)**: Transcribe consultas de audio a texto
+    - **Integración RAG**: Comunicación con el servicio de recuperación y generación de respuestas
+    - **Multi-Provider**: Soporte para ElevenLabs y Google Cloud Speech
+    
+    ## Módulos Soportados
+    
+    - **Teaching**: Módulo educativo con voz profesional
+    - **Simulation**: Simulación de debates con voces expresivas
+    - **Advisor**: Asesoría legal con voz clara y confiable
+    
+    ## Arquitectura
+    
+    El servicio actúa como intermediario entre el frontend y el RAG service:
+    1. Recibe consultas en texto o audio
+    2. Transcribe audio si es necesario (STT)
+    3. Envía la consulta al RAG service
+    4. Convierte la respuesta a audio (TTS)
+    5. Retorna texto + audio al cliente
+    """,
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    contact={
+        "name": "Legal Assistant Team",
+        "email": "support@legalassistant.com"
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT"
+    },
+    openapi_tags=[
+        {
+            "name": "Main",
+            "description": "Endpoints principales para procesamiento de consultas completas"
+        },
+        {
+            "name": "Internal",
+            "description": "Endpoints internos para servicios TTS/STT individuales"
+        },
+        {
+            "name": "Health",
+            "description": "Verificación del estado del servicio y dependencias"
+        }
+    ]
 )
 
 # Configurar CORS para frontend y RAG
