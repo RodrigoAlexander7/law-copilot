@@ -8,6 +8,7 @@ import {
   ScrollView,
   Dimensions,
   Platform,
+  ImageBackground,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Audio } from "expo-av";
@@ -18,6 +19,13 @@ import { BlurView } from "expo-blur";
 import { transcribeAudio, processQuery } from "../services/audioService";
 
 const { width, height } = Dimensions.get("window");
+
+// Background images
+const backgroundImages = {
+  teaching: require("../assets/images/educationBackground.jpg"),
+  simulation: require("../assets/images/debateBackground.jpg"),
+  advisor: require("../assets/images/advisorBackground.jpg"),
+};
 
 interface Message {
   id: string;
@@ -343,33 +351,39 @@ export default function VoiceChat({
   });
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-      {/* Header */}
-      <LinearGradient
-        colors={["rgba(10, 10, 10, 0.95)", "rgba(10, 10, 10, 0.8)"]}
-        style={styles.header}
-      >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        
-        <View style={styles.educatorInfo}>
-          <Text style={styles.educatorAvatar}>{educatorAvatar}</Text>
-          <View>
-            <Text style={styles.educatorName}>{educatorName}</Text>
-            <Text style={styles.educatorStatus}>
-              {isRecording 
-                ? "Recording..." 
-                : isEncoding 
-                ? "Encoding audio..." 
-                : isProcessing 
-                ? "Thinking..." 
-                : userTurn 
-                ? "Your turn" 
-                : "Speaking..."}
-            </Text>
-          </View>
-        </View>
+    <ImageBackground
+      source={backgroundImages[moduleType]}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay}>
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+          {/* Header */}
+          <LinearGradient
+            colors={["rgba(10, 10, 10, 0.95)", "rgba(10, 10, 10, 0.8)"]}
+            style={styles.header}
+          >
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Text style={styles.backButtonText}>←</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.educatorInfo}>
+              <Text style={styles.educatorAvatar}>{educatorAvatar}</Text>
+              <View>
+                <Text style={styles.educatorName}>{educatorName}</Text>
+                <Text style={styles.educatorStatus}>
+                  {isRecording 
+                    ? "Recording..." 
+                    : isEncoding 
+                    ? "Encoding audio..." 
+                    : isProcessing 
+                    ? "Thinking..." 
+                    : userTurn 
+                    ? "Your turn" 
+                    : "Speaking..."}
+                </Text>
+              </View>
+            </View>
       </LinearGradient>
 
       {/* Messages */}
@@ -476,14 +490,33 @@ export default function VoiceChat({
             : "Hold to speak"}
         </Text>
       </View>
-    </SafeAreaView>
+        </SafeAreaView>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(10, 10, 10, 0.75)",
+  },
   container: {
     flex: 1,
-    backgroundColor: "#0a0a0a",
+  },
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(10, 10, 10, 0.85)",
   },
   header: {
     flexDirection: "row",

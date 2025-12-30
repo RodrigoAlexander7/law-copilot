@@ -5,9 +5,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView as RNScrollView,
-  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CustomAlert from "./CustomAlert";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -36,6 +36,17 @@ export default function ConversationHistory({
   refreshTrigger,
 }: ConversationHistoryProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    buttons?: Array<{ text: string; onPress?: () => void; style?: "default" | "cancel" | "destructive" }>;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
 
   useEffect(() => {
     loadConversations();
@@ -59,10 +70,11 @@ export default function ConversationHistory({
   };
 
   const handleDelete = (conversation: Conversation) => {
-    Alert.alert(
-      "Delete Conversation",
-      `Are you sure you want to delete this conversation with ${conversation.modelName}?`,
-      [
+    setAlertConfig({
+      visible: true,
+      title: "Delete Conversation",
+      message: `Are you sure you want to delete this conversation with ${conversation.modelName}?`,
+      buttons: [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
@@ -80,8 +92,8 @@ export default function ConversationHistory({
             }
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   const formatDate = (date: Date) => {
@@ -158,6 +170,14 @@ export default function ConversationHistory({
           </View>
         ))}
       </ScrollView>
+      
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
+      />
     </View>
   );
 }

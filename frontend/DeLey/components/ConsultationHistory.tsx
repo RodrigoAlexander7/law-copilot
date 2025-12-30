@@ -5,9 +5,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView as RNScrollView,
-  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CustomAlert from "./CustomAlert";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -41,6 +41,17 @@ export default function ConsultationHistory({
   refreshTrigger,
 }: ConsultationHistoryProps) {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    buttons?: Array<{ text: string; onPress?: () => void; style?: "default" | "cancel" | "destructive" }>;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
 
   useEffect(() => {
     loadConsultations();
@@ -63,10 +74,11 @@ export default function ConsultationHistory({
   };
 
   const handleDelete = (consultation: Consultation) => {
-    Alert.alert(
-      "Delete Consultation",
-      `Delete consultation about "${consultation.topic}"?`,
-      [
+    setAlertConfig({
+      visible: true,
+      title: "Delete Consultation",
+      message: `Delete consultation about "${consultation.topic}"?`,
+      buttons: [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
@@ -84,8 +96,8 @@ export default function ConsultationHistory({
             }
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   const formatDate = (date: Date) => {
@@ -245,6 +257,14 @@ export default function ConsultationHistory({
           </View>
         ))}
       </ScrollView>
+      
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
+      />
     </View>
   );
 }

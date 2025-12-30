@@ -5,9 +5,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView as RNScrollView,
-  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CustomAlert from "./CustomAlert";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -44,6 +44,17 @@ export default function DebateHistory({
   refreshTrigger,
 }: DebateHistoryProps) {
   const [configs, setConfigs] = useState<DebateConfig[]>([]);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    buttons?: Array<{ text: string; onPress?: () => void; style?: "default" | "cancel" | "destructive" }>;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
 
   useEffect(() => {
     loadConfigs();
@@ -66,10 +77,11 @@ export default function DebateHistory({
   };
 
   const handleDelete = (config: DebateConfig) => {
-    Alert.alert(
-      "Delete Debate",
-      `Delete debate on "${config.topic}"?`,
-      [
+    setAlertConfig({
+      visible: true,
+      title: "Delete Debate",
+      message: `Delete debate on "${config.topic}"?`,
+      buttons: [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
@@ -85,8 +97,8 @@ export default function DebateHistory({
             }
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   const formatDate = (date: Date) => {
@@ -205,6 +217,14 @@ export default function DebateHistory({
           </View>
         ))}
       </ScrollView>
+      
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
+      />
     </View>
   );
 }
