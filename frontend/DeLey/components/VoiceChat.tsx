@@ -14,7 +14,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { BlurView } from "expo-blur";
-import { transcribeAudio } from "../services/audioService";
+import { transcribeAudio, processQuery } from "../services/audioService";
 
 const { width, height } = Dimensions.get("window");
 
@@ -32,6 +32,7 @@ interface VoiceChatProps {
   educatorId: string;
   systemPrompt: string;
   initialGreeting: string;
+  moduleType?: "teaching" | "simulation" | "advisor";
 }
 
 export default function VoiceChat({
@@ -40,6 +41,7 @@ export default function VoiceChat({
   educatorId,
   systemPrompt,
   initialGreeting,
+  moduleType = "teaching",
 }: VoiceChatProps) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -56,6 +58,7 @@ export default function VoiceChat({
   const pressTimeRef = useRef<number>(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const audioPlayerRef = useRef<Audio.Sound | null>(null);
 
   // Initialize with greeting from educator
   useEffect(() => {
@@ -234,17 +237,25 @@ export default function VoiceChat({
 
       setMessages((prev) => [...prev, userMessage]);
 
-      // TODO: Integrate with RAG service for real educator responses
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Get RAG response with text and audio
+      console.log(`🤖 Getting ${moduleType} response...`);
+      const ragResponse = await processQuery(transcription, moduleType);
+      console.log("✅ RAG Response:", ragResponse);
 
+      // Add educator message
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
-        content: "Response from educator (pending RAG integration)",
+        content: ragResponse.text_response,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Play audio response
+      if (ragResponse.audio_base64) {
+        await playAudioResponse(ragResponse.audio_base64);
+      }
       
       // Scroll to bottom
       setTimeout(() => {
@@ -256,6 +267,36 @@ export default function VoiceChat({
     } finally {
       setIsProcessing(false);
       setUserTurn(true);
+    }
+  };
+
+  const playAudioResponse = async (audioBase64: string) => {
+    try {
+      console.log("🔊 Playing audio response...");
+      
+      // Cleanup previous audio if exists
+      if (audioPlayerRef.current) {
+        await audioPlayerRef.current.unloadAsync();
+        audioPlayerRef.current = null;
+      }
+
+      // Create Sound from base64
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: `data:audio/mp3;base64,${audioBase64}` },
+        { shouldPlay: true }
+      );
+      
+      audioPlayerRef.current = sound;
+
+      // Cleanup after playback
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          console.log("✅ Audio playback finished");
+          sound.unloadAsync();
+        }
+      });
+    } catch (error) {
+      console.error("❌ Error playing audio:", error);
     }
   };
 

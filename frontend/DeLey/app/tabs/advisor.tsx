@@ -115,22 +115,32 @@ export default function AdvisorModule() {
   const handleAdvisorPress = async (advisor: LegalAdvisor) => {
     setIsLoading(true);
     
-    // Pequeño delay antes de navegar
     await new Promise(resolve => setTimeout(resolve, 300));
     
+    // Navigate directly to advisor chat
     router.push({
-      pathname: "/advisor-profile",
+      pathname: "/advisor-chat",
       params: { advisor: JSON.stringify(advisor) },
     });
     
-    // Mantener loading visible hasta que la navegación se complete
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     setIsLoading(false);
   };
 
   const handleContinueConsultation = (consultation: Consultation) => {
-    console.log("Continue consultation:", consultation);
+    // Navigate to advisor chat with saved consultation
+    router.push({
+      pathname: "/advisor-chat",
+      params: { advisor: JSON.stringify({
+        id: consultation.advisorId,
+        name: consultation.advisorName,
+        avatar: consultation.advisorAvatar,
+        title: "Legal Advisor", // Generic title for continued sessions
+        specialties: [],
+        description: "",
+      }) },
+    });
   };
 
   const handleDeleteConsultation = (consultationId: string) => {

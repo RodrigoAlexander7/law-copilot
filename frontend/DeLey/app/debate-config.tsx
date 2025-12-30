@@ -69,6 +69,7 @@ export default function DebateConfigScreen() {
     }
 
     const config = {
+      id: `debate-${Date.now()}`,
       modelName: model.name,
       modelAvatar: model.avatar,
       topic: debateTopic,
@@ -85,19 +86,16 @@ export default function DebateConfigScreen() {
     };
 
     try {
+      // Save config to history
       await saveDebateConfig(config);
-      Alert.alert(
-        "Debate Ready! 🎯",
-        `Configuration saved. You'll debate: "${debateTopic}" from the ${position} position with ${model.name}.`,
-        [
-          {
-            text: "Start Debate",
-            onPress: () => router.back(),
-          },
-        ]
-      );
+      
+      // Navigate directly to debate chat
+      router.push({
+        pathname: "/debate-chat",
+        params: { config: JSON.stringify(config) },
+      });
     } catch (error) {
-      Alert.alert("Error", "Failed to save configuration.");
+      Alert.alert("Error", "Failed to start debate.");
     }
   };
 

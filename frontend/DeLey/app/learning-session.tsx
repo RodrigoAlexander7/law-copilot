@@ -51,6 +51,7 @@ export default function LearningSession() {
           educatorId={educator.id}
           systemPrompt={educatorPrompt.systemPrompt}
           initialGreeting={educatorPrompt.initialGreeting}
+          moduleType="teaching"
         />
       )}
     </View>

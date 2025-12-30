@@ -107,8 +107,11 @@ export default function DebateModule() {
   };
 
   const handleContinueDebate = (config: DebateConfig) => {
-    // Would open debate interface
-    console.log("Continue debate:", config);
+    // Navigate to debate chat with saved config
+    router.push({
+      pathname: "/debate-chat",
+      params: { config: JSON.stringify(config) },
+    });
   };
 
   const handleDeleteDebate = (configId: string) => {

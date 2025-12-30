@@ -15,6 +15,7 @@ const ScrollView = RNScrollView as any;
 
 export interface Consultation {
   id?: string;
+  advisorId: string;
   advisorName: string;
   advisorAvatar: string;
   topic: string;
