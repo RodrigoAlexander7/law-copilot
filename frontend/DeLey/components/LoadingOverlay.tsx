@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Platform,
 } from "react-native";
-import { MotiView } from "moti";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 
@@ -21,7 +20,7 @@ interface LoadingOverlayProps {
  * 
  * Características:
  * - Bloquea todas las interacciones con la pantalla
- * - Animación suave con moti
+ * - Animación suave
  * - Efecto blur en el fondo
  * - Mensaje personalizable
  */
@@ -51,19 +50,7 @@ export default function LoadingOverlay({
         )}
 
         {/* Loading Card */}
-        <MotiView
-          from={{
-            opacity: 0,
-            scale: 0.8,
-          }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-          }}
-          transition={{
-            type: "spring",
-            duration: 400,
-          }}
+        <View
           style={styles.loadingCard}
         >
           <LinearGradient
@@ -71,19 +58,11 @@ export default function LoadingOverlay({
             style={styles.gradient}
           >
             {/* Animated spinner container */}
-            <MotiView
-              from={{ rotate: "0deg" }}
-              animate={{ rotate: "360deg" }}
-              transition={{
-                type: "timing",
-                duration: 1000,
-                loop: true,
-              }}
-            >
+            <View>
               <View style={styles.spinnerContainer}>
                 <ActivityIndicator size="large" color="#fbbf24" />
               </View>
-            </MotiView>
+            </View>
 
             {/* Loading text */}
             <Text style={styles.loadingText}>{message}</Text>
@@ -91,16 +70,8 @@ export default function LoadingOverlay({
             {/* Animated dots */}
             <View style={styles.dotsContainer}>
               {[0, 1, 2].map((index) => (
-                <MotiView
+                <View
                   key={index}
-                  from={{ opacity: 0.3 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    type: "timing",
-                    duration: 600,
-                    delay: index * 200,
-                    loop: true,
-                  }}
                   style={styles.dot}
                 />
               ))}
@@ -109,23 +80,10 @@ export default function LoadingOverlay({
 
           {/* Glow effect */}
           <View style={styles.glowEffect} />
-        </MotiView>
+        </View>
 
         {/* Pulsating ring effect */}
-        <MotiView
-          from={{
-            scale: 0.8,
-            opacity: 0.5,
-          }}
-          animate={{
-            scale: 1.5,
-            opacity: 0,
-          }}
-          transition={{
-            type: "timing",
-            duration: 2000,
-            loop: true,
-          }}
+        <View
           style={styles.pulseRing}
         />
       </View>
