@@ -9,7 +9,6 @@ import {
   Alert,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { MotiView } from "moti";
 import StarsBackground from "../components/StarsBackground";
 import { DebateModel } from "../components/DebateModelCard";
 import { saveDebateConfig } from "../components/DebateHistory";
@@ -109,10 +108,7 @@ export default function DebateConfigScreen() {
     leftLabel: string,
     rightLabel: string
   ) => (
-    <MotiView
-      from={{ opacity: 0, translateX: -20 }}
-      animate={{ opacity: 1, translateX: 0 }}
-      transition={{ type: "timing", duration: 400 }}
+    <View
       style={styles.sliderContainer}
     >
       <View style={styles.sliderHeader}>
@@ -138,7 +134,7 @@ export default function DebateConfigScreen() {
           ))}
         </View>
       </View>
-    </MotiView>
+    </View>
   );
 
   const renderSelector = (
@@ -147,10 +143,7 @@ export default function DebateConfigScreen() {
     selected: string,
     onSelect: (val: string) => void
   ) => (
-    <MotiView
-      from={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "spring", delay: 200 }}
+    <View
       style={styles.selectorContainer}
     >
       <Text style={styles.selectorLabel}>{label}</Text>
@@ -175,7 +168,7 @@ export default function DebateConfigScreen() {
           </TouchableOpacity>
         ))}
       </View>
-    </MotiView>
+    </View>
   );
 
   return (
@@ -188,10 +181,7 @@ export default function DebateConfigScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <MotiView
-          from={{ opacity: 0, translateY: -30 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "timing", duration: 500 }}
+        <View
           style={styles.header}
         >
           <Text style={styles.modelAvatar}>{model.avatar}</Text>
@@ -200,13 +190,10 @@ export default function DebateConfigScreen() {
           <Text style={styles.subtitle}>
             Customize your debate opponent's personality and style
           </Text>
-        </MotiView>
+        </View>
 
         {/* Topic Input */}
-        <MotiView
-          from={{ opacity: 0, translateY: 20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "timing", duration: 500, delay: 100 }}
+        <View
           style={styles.section}
         >
           <Text style={styles.sectionTitle}>📝 Debate Topic</Text>
@@ -218,7 +205,7 @@ export default function DebateConfigScreen() {
             onChangeText={setDebateTopic}
             multiline
           />
-        </MotiView>
+        </View>
 
         {/* Position Selection */}
         <View style={styles.section}>
@@ -286,10 +273,7 @@ export default function DebateConfigScreen() {
         </View>
 
         {/* Start Button */}
-        <MotiView
-          from={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", delay: 400 }}
+        <View
           style={styles.buttonContainer}
         >
           <TouchableOpacity
@@ -305,7 +289,7 @@ export default function DebateConfigScreen() {
           >
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
-        </MotiView>
+        </View>
       </ScrollView>
     </View>
   );

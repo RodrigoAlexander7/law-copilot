@@ -9,7 +9,6 @@ import {
   Alert,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { MotiView } from "moti";
 import { LinearGradient } from "expo-linear-gradient";
 import StarsBackground from "../components/StarsBackground";
 import { LegalAdvisor } from "../components/AdvisorCard";
@@ -110,11 +109,7 @@ export default function AdvisorProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Header */}
-        <MotiView
-          from={{ opacity: 0, translateY: -30 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "spring", duration: 600 }}
-        >
+        <View>
           <LinearGradient
             colors={["rgba(251, 191, 36, 0.15)", "rgba(245, 158, 11, 0.05)"]}
             style={styles.profileHeader}
@@ -129,7 +124,7 @@ export default function AdvisorProfileScreen() {
               {advisor.rating} / 5.0
             </Text>
           </LinearGradient>
-        </MotiView>
+        </View>
 
         {/* About */}
         <View style={styles.section}>
@@ -145,16 +140,13 @@ export default function AdvisorProfileScreen() {
           <View style={styles.card}>
             <View style={styles.specialtiesGrid}>
               {advisor.specialties.map((specialty, index) => (
-                <MotiView
+                <View
                   key={index}
-                  from={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ type: "spring", delay: index * 80 }}
                 >
                   <View style={styles.specialtyTag}>
                     <Text style={styles.specialtyTagText}>{specialty}</Text>
                   </View>
-                </MotiView>
+                </View>
               ))}
             </View>
           </View>
@@ -212,10 +204,7 @@ export default function AdvisorProfileScreen() {
         </View>
 
         {/* Action Buttons */}
-        <MotiView
-          from={{ opacity: 0, translateY: 20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "spring", delay: 400 }}
+        <View
           style={styles.buttonContainer}
         >
           <TouchableOpacity
@@ -238,7 +227,7 @@ export default function AdvisorProfileScreen() {
           >
             <Text style={styles.cancelButtonText}>Back to Advisors</Text>
           </TouchableOpacity>
-        </MotiView>
+        </View>
       </ScrollView>
     </View>
   );
