@@ -8,7 +8,6 @@ import {
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MotiView } from "moti";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -119,10 +118,7 @@ export default function DebateHistory({
 
   if (configs.length === 0) {
     return (
-      <MotiView
-        from={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring" }}
+      <View
         style={styles.emptyContainer}
       >
         <Text style={styles.emptyIcon}>🎯</Text>
@@ -130,7 +126,7 @@ export default function DebateHistory({
         <Text style={styles.emptySubtext}>
           Configure a debate model to get started
         </Text>
-      </MotiView>
+      </View>
     );
   }
 
@@ -147,14 +143,8 @@ export default function DebateHistory({
         contentContainerStyle={styles.listContent}
       >
         {configs.map((config, index) => (
-          <MotiView
+          <View
             key={config.id}
-            from={{ opacity: 0, translateX: -50 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{
-              type: "spring",
-              delay: index * 100,
-            }}
           >
             <View style={styles.debateCard}>
               <TouchableOpacity
@@ -212,7 +202,7 @@ export default function DebateHistory({
                 <Text style={styles.deleteIcon}>🗑️</Text>
               </TouchableOpacity>
             </View>
-          </MotiView>
+          </View>
         ))}
       </ScrollView>
     </View>

@@ -6,8 +6,8 @@ import {
   StyleSheet,
   Alert,
   Animated,
+  Platform,
 } from "react-native";
-import { MotiView } from "moti";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -71,21 +71,32 @@ export default function ModelCard({ model, onStart }: ModelCardProps) {
     outputRange: [0.3, 0.7],
   });
   const handlePress = () => {
-    Alert.alert(
-      model.name,
-      `Specialty: ${model.specialty}\n\n${model.description}\n\nPersonality: ${model.personality}\n\nExperience: ${model.experience}\n\nApproach: ${model.approach}\n\nTags: ${model.tags.join(", ")}`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Start Learning",
-          onPress: () => onStart(model),
-          style: "default",
-        },
-      ]
-    );
+    if (Platform.OS === 'web') {
+      // Web: Use confirm dialog
+      const confirmed = window.confirm(
+        `${model.name}\n\nSpecialty: ${model.specialty}\n\n${model.description}\n\nPersonality: ${model.personality}\n\nExperience: ${model.experience}\n\nApproach: ${model.approach}\n\nTags: ${model.tags.join(", ")}\n\nStart learning?`
+      );
+      if (confirmed) {
+        onStart(model);
+      }
+    } else {
+      // Mobile: Use Alert.alert
+      Alert.alert(
+        model.name,
+        `Specialty: ${model.specialty}\n\n${model.description}\n\nPersonality: ${model.personality}\n\nExperience: ${model.experience}\n\nApproach: ${model.approach}\n\nTags: ${model.tags.join(", ")}`,
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Start Learning",
+            onPress: () => onStart(model),
+            style: "default",
+          },
+        ]
+      );
+    }
   };
 
   return (
@@ -106,18 +117,11 @@ export default function ModelCard({ model, onStart }: ModelCardProps) {
       >
         <View style={styles.cardContent}>
           {/* Avatar */}
-          <MotiView
-            from={{ rotate: "0deg" }}
-            animate={{ rotate: "360deg" }}
-            transition={{
-              type: "timing",
-              duration: 20000,
-              loop: true,
-            }}
+          <View
             style={styles.avatarContainer}
           >
             <Text style={styles.avatar}>{model.avatar}</Text>
-          </MotiView>
+          </View>
 
           <View style={styles.infoContainer}>
             <Text style={styles.name}>{model.name}</Text>
@@ -129,19 +133,13 @@ export default function ModelCard({ model, onStart }: ModelCardProps) {
             {/* Tags */}
             <View style={styles.tagsContainer}>
               {model.tags.slice(0, 3).map((tag, index) => (
-                <MotiView
+                <View
                   key={index}
-                  from={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{
-                    type: "spring",
-                    delay: index * 100,
-                  }}
                 >
                   <View style={styles.tag}>
                     <Text style={styles.tagText}>{tag}</Text>
                   </View>
-                </MotiView>
+                </View>
               ))}
             </View>
           </View>

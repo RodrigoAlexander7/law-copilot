@@ -8,7 +8,6 @@ import {
   ScrollView as RNScrollView,
   Animated,
 } from "react-native";
-import { MotiView } from "moti";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -101,18 +100,14 @@ export default function SearchBar({
           onBlur={() => setIsFocused(false)}
         />
         {searchQuery.length > 0 && (
-          <MotiView
-            from={{ scale: 0, rotate: "0deg" }}
-            animate={{ scale: 1, rotate: "360deg" }}
-            transition={{ type: "spring" }}
-          >
+          <View>
             <TouchableOpacity
               onPress={() => handleSearch("")}
               style={styles.clearButton}
             >
               <Text style={styles.clearIcon}>✕</Text>
             </TouchableOpacity>
-          </MotiView>
+          </View>
         )}
       </Animated.View>
 
@@ -126,14 +121,8 @@ export default function SearchBar({
         {availableTags.map((tag, index) => {
           const isSelected = selectedTags.includes(tag);
           return (
-            <MotiView
+            <View
               key={tag}
-              from={{ opacity: 0, translateY: 20 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{
-                type: "spring",
-                delay: index * 50,
-              }}
             >
               <TouchableOpacity
                 style={[
@@ -151,18 +140,14 @@ export default function SearchBar({
                   {tag}
                 </Text>
               </TouchableOpacity>
-            </MotiView>
+            </View>
           );
         })}
       </ScrollView>
 
       {/* Active filters indicator */}
       {selectedTags.length > 0 && (
-        <MotiView
-          from={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ type: "timing", duration: 300 }}
+        <View
           style={styles.activeFiltersContainer}
         >
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
@@ -179,7 +164,7 @@ export default function SearchBar({
           >
             <Text style={styles.clearFiltersText}>Clear all</Text>
           </TouchableOpacity>
-        </MotiView>
+        </View>
       )}
     </View>
   );

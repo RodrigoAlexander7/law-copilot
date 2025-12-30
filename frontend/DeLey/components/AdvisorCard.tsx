@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Animated,
 } from "react-native";
-import { MotiView } from "moti";
 import { LinearGradient } from "expo-linear-gradient";
 
 const View = RNView as any;
@@ -89,15 +88,7 @@ export default function AdvisorCard({
   };
 
   return (
-    <MotiView
-      from={{ opacity: 0, translateY: 50, scale: 0.9 }}
-      animate={{ opacity: 1, translateY: 0, scale: 1 }}
-      transition={{
-        type: "spring",
-        delay: index * 150,
-        damping: 15,
-      }}
-    >
+    <View>
       <Animated.View
         style={[
           styles.cardWrapper,
@@ -179,7 +170,7 @@ export default function AdvisorCard({
           )}
         </TouchableOpacity>
       </Animated.View>
-    </MotiView>
+    </View>
   );
 }
 

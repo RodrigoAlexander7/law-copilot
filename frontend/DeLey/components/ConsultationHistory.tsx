@@ -8,7 +8,6 @@ import {
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MotiView } from "moti";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -130,10 +129,7 @@ export default function ConsultationHistory({
 
   if (consultations.length === 0) {
     return (
-      <MotiView
-        from={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring" }}
+      <View
         style={styles.emptyContainer}
       >
         <Text style={styles.emptyIcon}>📋</Text>
@@ -141,7 +137,7 @@ export default function ConsultationHistory({
         <Text style={styles.emptySubtext}>
           Start a consultation with a legal advisor to see it here
         </Text>
-      </MotiView>
+      </View>
     );
   }
 
@@ -158,14 +154,8 @@ export default function ConsultationHistory({
         contentContainerStyle={styles.listContent}
       >
         {consultations.map((consultation, index) => (
-          <MotiView
+          <View
             key={consultation.id}
-            from={{ opacity: 0, translateX: 50 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{
-              type: "spring",
-              delay: index * 100,
-            }}
           >
             <View style={styles.consultationCard}>
               <TouchableOpacity
@@ -251,7 +241,7 @@ export default function ConsultationHistory({
                 <Text style={styles.deleteIcon}>🗑️</Text>
               </TouchableOpacity>
             </View>
-          </MotiView>
+          </View>
         ))}
       </ScrollView>
     </View>

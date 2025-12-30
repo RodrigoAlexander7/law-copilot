@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Animated,
 } from "react-native";
-import { MotiView } from "moti";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -83,15 +82,7 @@ export default function DebateModelCard({
   };
 
   return (
-    <MotiView
-      from={{ opacity: 0, translateY: 50 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{
-        type: "timing",
-        duration: 600,
-        delay: index * 100,
-      }}
-    >
+    <View>
       <Animated.View
         style={[
           styles.cardWrapper,
@@ -119,20 +110,13 @@ export default function DebateModelCard({
 
           <View style={styles.cardContent}>
             {/* Avatar with gradient background */}
-            <MotiView
-              from={{ rotate: "0deg" }}
-              animate={{ rotate: "360deg" }}
-              transition={{
-                type: "timing",
-                duration: 20000,
-                loop: true,
-              }}
+            <View
               style={styles.avatarWrapper}
             >
               <View style={styles.avatarGradient}>
                 <Text style={styles.avatar}>{model.avatar}</Text>
               </View>
-            </MotiView>
+            </View>
 
             <View style={styles.infoContainer}>
               <View style={styles.headerRow}>
@@ -187,7 +171,7 @@ export default function DebateModelCard({
           </View>
         </TouchableOpacity>
       </Animated.View>
-    </MotiView>
+    </View>
   );
 }
 
