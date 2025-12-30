@@ -51,3 +51,4 @@ Thumbs.db
 # Google credentials
 *-credentials.json
 google-credentials.json
+.vercel
