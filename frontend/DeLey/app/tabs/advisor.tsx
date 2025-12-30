@@ -1,21 +1,20 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   View as RNView,
   Text as RNText,
   StyleSheet,
   ScrollView as RNScrollView,
-  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import StarsBackground from "../../components/StarsBackground";
-import SearchBar from "../../components/SearchBar";
 import AdvisorCard, { LegalAdvisor } from "../../components/AdvisorCard";
 import ConsultationHistory, {
   Consultation,
 } from "../../components/ConsultationHistory";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import CustomAlert from "../../components/CustomAlert";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -76,68 +75,69 @@ const LEGAL_ADVISORS: LegalAdvisor[] = [
   },
 ];
 
-// Get all unique tags
-const ALL_TAGS = Array.from(
-  new Set(LEGAL_ADVISORS.flatMap((advisor) => advisor.tags))
-).sort();
-
 export default function AdvisorModule() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [refreshHistory, setRefreshHistory] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    buttons?: Array<{ text: string; onPress?: () => void; style?: "default" | "cancel" | "destructive" }>;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
 
-  // Filter advisors
-  const filteredAdvisors = useMemo(() => {
-    let filtered = LEGAL_ADVISORS;
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (advisor) =>
-          advisor.name.toLowerCase().includes(query) ||
-          advisor.title.toLowerCase().includes(query) ||
-          advisor.specialties.some((s) => s.toLowerCase().includes(query)) ||
-          advisor.tags.some((tag) => tag.toLowerCase().includes(query))
-      );
-    }
-
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter((advisor) =>
-        selectedTags.every((tag) => advisor.tags.includes(tag))
-      );
-    }
-
-    // Sort by rating (highest first)
-    return filtered.sort((a, b) => b.rating - a.rating);
-  }, [searchQuery, selectedTags]);
-
-  const handleAdvisorPress = async (advisor: LegalAdvisor) => {
-    setIsLoading(true);
-    
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // Navigate directly to advisor chat
-    router.push({
-      pathname: "/advisor-chat",
-      params: { advisor: JSON.stringify(advisor) },
+  const handleAdvisorPress = (advisor: LegalAdvisor) => {
+    setAlertConfig({
+      visible: true,
+      title: advisor.name,
+      message: `Start consultation with ${advisor.name}?`,
+      buttons: [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Start", 
+          style: "default",
+          onPress: () => startConsultation(advisor)
+        }
+      ],
     });
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setIsLoading(false);
+  };
+
+  const startConsultation = async (advisor: LegalAdvisor) => {
+    try {
+      setIsLoading(true);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      router.push({
+        pathname: "/advisor-chat",
+        params: { advisor: JSON.stringify(advisor) },
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      setAlertConfig({
+        visible: true,
+        title: "Error",
+        message: "Failed to start consultation. Please try again.",
+        buttons: [{ text: "OK", style: "default" }],
+      });
+    }
   };
 
   const handleContinueConsultation = (consultation: Consultation) => {
-    // Navigate to advisor chat with saved consultation
     router.push({
       pathname: "/advisor-chat",
       params: { advisor: JSON.stringify({
         id: consultation.advisorId,
         name: consultation.advisorName,
         avatar: consultation.advisorAvatar,
-        title: "Legal Advisor", // Generic title for continued sessions
+        title: "Legal Advisor",
         specialties: [],
         description: "",
       }) },
@@ -149,7 +149,7 @@ export default function AdvisorModule() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <StarsBackground />
 
       <ScrollView
@@ -169,60 +169,41 @@ export default function AdvisorModule() {
           </LinearGradient>
         </View>
 
-        {/* Search and Tags */}
-        <SearchBar
-          onSearch={setSearchQuery}
-          onFilterChange={setSelectedTags}
-          availableTags={ALL_TAGS}
-        />
-
-        {/* Advisors Section */}
-        <View style={styles.advisorsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              AI Advisors ({filteredAdvisors.length})
-            </Text>
-            {filteredAdvisors.length > 0 && (
-              <Text style={styles.sectionSubtitle}>
-                Available 24/7
-              </Text>
-            )}
-          </View>
-
-          {filteredAdvisors.length > 0 ? (
-            filteredAdvisors.map((advisor, index) => (
-              <AdvisorCard
-                key={advisor.id}
-                advisor={advisor}
-                onPress={handleAdvisorPress}
-                index={index}
-              />
-            ))
-          ) : (
-            <View
-              style={styles.emptyState}
-            >
-              <Text style={styles.emptyIcon}>🔍</Text>
-              <Text style={styles.emptyText}>No advisors match your filters</Text>
-              <Text style={styles.emptySubtext}>
-                Try adjusting your search or clearing filters
-              </Text>
-            </View>
-          )}
+        {/* Advisors Cards */}
+        <View style={styles.advisorsContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.advisorsSection}
+          >
+            {LEGAL_ADVISORS.map((advisor, index) => (
+              <View key={advisor.id} style={styles.advisorCardWrapper}>
+                <AdvisorCard
+                  advisor={advisor}
+                  onPress={handleAdvisorPress}
+                  index={index}
+                />
+              </View>
+            ))}
+          </ScrollView>
         </View>
 
         {/* Consultation History */}
         <ConsultationHistory
+          refreshTrigger={refreshHistory}
           onContinue={handleContinueConsultation}
           onDelete={handleDeleteConsultation}
-          refreshTrigger={refreshHistory}
         />
       </ScrollView>
+
+      {isLoading && <LoadingOverlay />}
       
-      {/* Loading Overlay */}
-      <LoadingOverlay 
-        visible={isLoading} 
-        message="Connecting to advisor..." 
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
       />
     </SafeAreaView>
   );
@@ -231,15 +212,13 @@ export default function AdvisorModule() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0a0a0a",
+    backgroundColor: "#0f172a",
   },
   content: {
-    paddingBottom: 40,
+    paddingBottom: 24,
   },
   header: {
-    alignItems: "center",
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingVertical: 30,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(251, 191, 36, 0.2)",
@@ -260,48 +239,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 22,
   },
+  advisorsContainer: {
+    flex: 1,
+    paddingVertical: 20,
+  },
   advisorsSection: {
     paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 24,
+    flexDirection: 'row',
+    gap: 16,
   },
-  sectionHeader: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#ffffff",
-    marginBottom: 4,
-    textShadowColor: "rgba(251, 191, 36, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: "#fbbf24",
-    fontWeight: "600",
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 50,
-    paddingHorizontal: 20,
-  },
-  emptyIcon: {
-    fontSize: 56,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#ffffff",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: "#94a3b8",
-    textAlign: "center",
+  advisorCardWrapper: {
+    width: 340,
+    maxWidth: '90%',
   },
 });
