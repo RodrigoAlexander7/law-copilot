@@ -116,16 +116,19 @@ export default function EducationModule() {
       // Refresh history
       setRefreshHistory((prev) => prev + 1);
 
-      // Mantener loading visible un momento más
-      await new Promise(resolve => setTimeout(resolve, 600));
+      // Small delay before navigation
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Navigate to learning session
+      router.push({
+        pathname: "/learning-session",
+        params: { educator: JSON.stringify(model) },
+      });
+      
+      // Keep loading visible during navigation
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       setIsLoading(false);
-      
-      Alert.alert(
-        "Session Started! 🎓",
-        `You're now learning with ${model.name}. In a full implementation, this would open a chat interface.`,
-        [{ text: "Got it!", style: "default" }]
-      );
     } catch (error) {
       setIsLoading(false);
       Alert.alert("Error", "Failed to start conversation. Please try again.");

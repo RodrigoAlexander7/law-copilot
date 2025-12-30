@@ -6,7 +6,6 @@ import {
   ScrollView as RNScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { MotiView } from "moti";
 import StarsBackground from "../../components/StarsBackground";
 import SearchBar from "../../components/SearchBar";
 import DebateModelCard, { DebateModel } from "../../components/DebateModelCard";
@@ -125,17 +124,14 @@ export default function DebateModule() {
         showsVerticalScrollIndicator={true}
       >
         {/* Header */}
-        <MotiView
-          from={{ opacity: 0, translateY: -30 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "spring", duration: 800 }}
+        <View
           style={styles.header}
         >
           <Text style={styles.title}>Legal Debate Arena</Text>
           <Text style={styles.subtitle}>
             Configure your opponent and engage in dynamic legal arguments
           </Text>
-        </MotiView>
+        </View>
 
         {/* Search and Filters */}
         <SearchBar
@@ -160,9 +156,7 @@ export default function DebateModule() {
               />
             ))
           ) : (
-            <MotiView
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
+            <View
               style={styles.emptyState}
             >
               <Text style={styles.emptyIcon}>🔍</Text>
@@ -170,7 +164,7 @@ export default function DebateModule() {
               <Text style={styles.emptySubtext}>
                 Try adjusting your search or clearing filters
               </Text>
-            </MotiView>
+            </View>
           )}
         </View>
 

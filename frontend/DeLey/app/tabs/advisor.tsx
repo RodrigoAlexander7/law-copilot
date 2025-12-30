@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { MotiView } from "moti";
 import { LinearGradient } from "expo-linear-gradient";
 import StarsBackground from "../../components/StarsBackground";
 import SearchBar from "../../components/SearchBar";
@@ -147,11 +146,7 @@ export default function AdvisorModule() {
         showsVerticalScrollIndicator={true}
       >
         {/* Header */}
-        <MotiView
-          from={{ opacity: 0, translateY: -30 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "spring", duration: 800 }}
-        >
+        <View>
           <LinearGradient
             colors={["rgba(251, 191, 36, 0.15)", "rgba(245, 158, 11, 0.05)"]}
             style={styles.header}
@@ -161,7 +156,7 @@ export default function AdvisorModule() {
               AI-powered legal advisors trained in various legal specialties
             </Text>
           </LinearGradient>
-        </MotiView>
+        </View>
 
         {/* Search and Tags */}
         <SearchBar
@@ -193,9 +188,7 @@ export default function AdvisorModule() {
               />
             ))
           ) : (
-            <MotiView
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
+            <View
               style={styles.emptyState}
             >
               <Text style={styles.emptyIcon}>🔍</Text>
@@ -203,7 +196,7 @@ export default function AdvisorModule() {
               <Text style={styles.emptySubtext}>
                 Try adjusting your search or clearing filters
               </Text>
-            </MotiView>
+            </View>
           )}
         </View>
 
