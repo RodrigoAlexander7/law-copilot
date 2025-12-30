@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView as RNScrollView,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Asset } from "expo-asset";
 import {
   useFonts as useQuicksand,
@@ -165,7 +166,7 @@ export default function Index() {
       : { onPressIn: onHoverIn, onPressOut: onHoverOut };
 
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
       <StarsBackground />
       <ScrollView
         style={styles.container}
@@ -211,7 +212,7 @@ export default function Index() {
 
       {/* Footer estándar de la aplicación (fijo en bottom) */}
       <Footer />
-    </View>
+    </SafeAreaView>
   );
 }
 

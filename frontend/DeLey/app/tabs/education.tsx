@@ -4,8 +4,8 @@ import {
   Text as RNText,
   StyleSheet,
   ScrollView as RNScrollView,
-  Alert,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import StarsBackground from "../../components/StarsBackground";
 import SearchBar from "../../components/SearchBar";
@@ -15,6 +15,7 @@ import ConversationHistory, {
   saveConversation,
 } from "../../components/ConversationHistory";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import CustomAlert from "../../components/CustomAlert";
 
 const View = RNView as any;
 const Text = RNText as any;
@@ -74,6 +75,17 @@ export default function EducationModule() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [refreshHistory, setRefreshHistory] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    buttons?: Array<{ text: string; onPress?: () => void; style?: "default" | "cancel" | "destructive" }>;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
 
   // Filter models based on search and tags
   const filteredModels = useMemo(() => {
@@ -101,6 +113,23 @@ export default function EducationModule() {
   }, [searchQuery, selectedTags]);
 
   const handleStartLearning = async (model: LegalModel) => {
+    // Show confirmation alert first
+    setAlertConfig({
+      visible: true,
+      title: model.name,
+      message: `Specialty: ${model.specialty}\n\n${model.description}\n\nPersonality: ${model.personality}\n\nExperience: ${model.experience}\n\nApproach: ${model.approach}\n\nTags: ${model.tags.join(", ")}\n\nStart learning with this educator?`,
+      buttons: [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Start Learning", 
+          style: "default",
+          onPress: () => startLearningSession(model)
+        }
+      ],
+    });
+  };
+
+  const startLearningSession = async (model: LegalModel) => {
     try {
       setIsLoading(true);
       
@@ -131,16 +160,22 @@ export default function EducationModule() {
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
-      Alert.alert("Error", "Failed to start conversation. Please try again.");
+      setAlertConfig({
+        visible: true,
+        title: "Error",
+        message: "Failed to start conversation. Please try again.",
+        buttons: [{ text: "OK", style: "default" }],
+      });
     }
   };
 
   const handleContinueConversation = (conversation: Conversation) => {
-    Alert.alert(
-      "Continue Learning",
-      `Continuing conversation with ${conversation.modelName}. In a full implementation, this would open the chat interface with previous messages.`,
-      [{ text: "Got it!", style: "default" }]
-    );
+    setAlertConfig({
+      visible: true,
+      title: "Continue Learning",
+      message: `Continuing conversation with ${conversation.modelName}. In a full implementation, this would open the chat interface with previous messages.`,
+      buttons: [{ text: "Got it!", style: "default" }],
+    });
   };
 
   const handleDeleteConversation = (conversationId: string) => {
@@ -148,7 +183,7 @@ export default function EducationModule() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StarsBackground />
       
       <ScrollView
@@ -202,13 +237,22 @@ export default function EducationModule() {
           refreshTrigger={refreshHistory}
         />
       </ScrollView>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
+      />
       
       {/* Loading Overlay */}
       <LoadingOverlay 
         visible={isLoading} 
         message="Starting learning session..." 
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { View, StyleSheet } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from "expo-router";
 import VoiceChat from "../components/VoiceChat";
 import { getEducatorPrompt } from "../constants/educatorPrompts";
@@ -24,9 +25,9 @@ export default function LearningSession() {
 
   if (!educator) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <LoadingOverlay visible={true} message="Loading educator..." />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -34,14 +35,14 @@ export default function LearningSession() {
 
   if (!educatorPrompt) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <LoadingOverlay visible={true} message="Preparing lesson..." />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {isLoading ? (
         <LoadingOverlay visible={isLoading} message="Initializing session..." />
       ) : (
@@ -54,7 +55,7 @@ export default function LearningSession() {
           moduleType="teaching"
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -8,6 +8,7 @@ import {
   TextInput as RNTextInput,
   Alert,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import StarsBackground from "../components/StarsBackground";
 import { DebateModel } from "../components/DebateModelCard";
@@ -170,7 +171,7 @@ export default function DebateConfigScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StarsBackground />
 
       <ScrollView
@@ -289,7 +290,7 @@ export default function DebateConfigScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

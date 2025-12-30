@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView as RNScrollView,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import StarsBackground from "../../components/StarsBackground";
 import SearchBar from "../../components/SearchBar";
@@ -119,7 +120,7 @@ export default function DebateModule() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StarsBackground />
 
       <ScrollView
@@ -184,7 +185,7 @@ export default function DebateModule() {
         visible={isLoading} 
         message="Preparing debate arena..." 
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

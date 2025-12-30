@@ -6,6 +6,7 @@ import {
   ScrollView as RNScrollView,
   TouchableOpacity,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import StarsBackground from "../../components/StarsBackground";
@@ -148,7 +149,7 @@ export default function AdvisorModule() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StarsBackground />
 
       <ScrollView
@@ -223,7 +224,7 @@ export default function AdvisorModule() {
         visible={isLoading} 
         message="Connecting to advisor..." 
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

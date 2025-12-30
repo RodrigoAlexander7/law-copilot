@@ -9,6 +9,7 @@ import {
   Dimensions,
   Platform,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
 import { LinearGradient } from "expo-linear-gradient";
@@ -44,6 +45,7 @@ export default function VoiceChat({
   moduleType = "teaching",
 }: VoiceChatProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
@@ -341,7 +343,7 @@ export default function VoiceChat({
   });
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       {/* Header */}
       <LinearGradient
         colors={["rgba(10, 10, 10, 0.95)", "rgba(10, 10, 10, 0.8)"]}
@@ -428,7 +430,7 @@ export default function VoiceChat({
       )}
 
       {/* Microphone Button with Glow */}
-      <View style={styles.micContainer}>
+      <View style={[styles.micContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         {userTurn && !isProcessing && (
           <Animated.View
             style={[
@@ -474,7 +476,7 @@ export default function VoiceChat({
             : "Hold to speak"}
         </Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

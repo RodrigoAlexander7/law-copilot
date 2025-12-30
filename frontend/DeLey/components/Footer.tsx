@@ -7,6 +7,7 @@ import {
   Linking,
   useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome, Entypo } from "@expo/vector-icons";
 
 const View = RNView as any;
@@ -21,10 +22,15 @@ function open(url: string) {
 
 export default function Footer() {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const isNarrow = width < 420;
 
   return (
-    <View style={[styles.footer, isNarrow && styles.footerNarrow]}>
+    <View style={[
+      styles.footer, 
+      isNarrow && styles.footerNarrow,
+      { paddingBottom: Math.max(insets.bottom, 32) }
+    ]}>
       <View style={styles.topRow}>
         <View style={styles.brand}>
           <Text style={styles.appName}>De Ley</Text>
@@ -78,7 +84,7 @@ export default function Footer() {
 const styles = StyleSheet.create({
   footer: {
     width: "100%",
-    backgroundColor: "rgba(0,0,0,0.36)",
+    backgroundColor: "rgba(0,0,0,1)",
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderTopWidth: 1,

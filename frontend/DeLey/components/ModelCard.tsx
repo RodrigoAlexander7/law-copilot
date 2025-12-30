@@ -4,9 +4,7 @@ import {
   Text as RNText,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   Animated,
-  Platform,
 } from "react-native";
 
 const View = RNView as any;
@@ -70,33 +68,9 @@ export default function ModelCard({ model, onStart }: ModelCardProps) {
     inputRange: [0, 1],
     outputRange: [0.3, 0.7],
   });
+  
   const handlePress = () => {
-    if (Platform.OS === 'web') {
-      // Web: Use confirm dialog
-      const confirmed = window.confirm(
-        `${model.name}\n\nSpecialty: ${model.specialty}\n\n${model.description}\n\nPersonality: ${model.personality}\n\nExperience: ${model.experience}\n\nApproach: ${model.approach}\n\nTags: ${model.tags.join(", ")}\n\nStart learning?`
-      );
-      if (confirmed) {
-        onStart(model);
-      }
-    } else {
-      // Mobile: Use Alert.alert
-      Alert.alert(
-        model.name,
-        `Specialty: ${model.specialty}\n\n${model.description}\n\nPersonality: ${model.personality}\n\nExperience: ${model.experience}\n\nApproach: ${model.approach}\n\nTags: ${model.tags.join(", ")}`,
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Start Learning",
-            onPress: () => onStart(model),
-            style: "default",
-          },
-        ]
-      );
-    }
+    onStart(model);
   };
 
   return (
