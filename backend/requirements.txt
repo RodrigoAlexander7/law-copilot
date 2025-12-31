@@ -5,11 +5,14 @@ pydantic-settings
 langchain
 openai
 
+# Google Gemini (alternativa a OpenAI)
+google-generativeai
+
 # PDF Processing
 PyMuPDF
 pdfplumber
 
-# Utils ins
+# Utils
 python-dotenv
 
 # To generate embeddings and handle vectors
@@ -17,7 +20,7 @@ sentence-transformers
 # To generate database for vector storage
 faiss-cpu 
 
-# numpy cause is used by faiss andd ensure datatype compatibility
+# numpy cause is used by faiss and ensure datatype compatibility
 numpy 
 # just to show progress bars during document processing lol
 tqdm
