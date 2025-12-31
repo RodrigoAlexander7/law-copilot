@@ -1,3 +1,24 @@
+# Git
 .git
-dist
+.gitignore
+
+# Python
 __pycache__
+*.pyc
+*.pyo
+.venv
+venv
+.env
+
+# IDE
+.vscode
+.idea
+
+# Tests
+tests
+pytest_cache
+
+# Otros
+*.md
+.dockerignore
+Dockerfile
