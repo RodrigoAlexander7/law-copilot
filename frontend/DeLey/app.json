@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "deley",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.dev1d123.DeLey"
     },
     "web": {
       "output": "static",
@@ -42,7 +43,13 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "42d9d38e-be30-4f70-a3f5-10c8709277bb"
+      }
     }
   }
 }
