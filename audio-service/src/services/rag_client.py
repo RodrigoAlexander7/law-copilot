@@ -43,17 +43,26 @@ class RAGClient:
             logger.info(f"Enviando consulta a RAG: '{question[:50]}...'")
             
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                # El backend RAG usa /api/v1/query y espera "query" (no "question")
                 response = await client.post(
-                    f"{self.base_url}/api/query",
+                    f"{self.base_url}/api/v1/query",
                     json={
-                        "question": question,
-                        "module": module
+                        "query": question,
+                        "top_k": 5,
+                        "score_threshold": 0.3
                     }
                 )
                 response.raise_for_status()
                 
                 data = response.json()
                 answer = data.get("answer", "")
+                
+                # Log las fuentes usadas para debugging
+                sources = data.get("sources", [])
+                if sources:
+                    logger.info(f"📚 Fuentes usadas: {len(sources)} artículos")
+                    for src in sources[:2]:  # Mostrar las 2 primeras
+                        logger.info(f"   - {src.get('label', 'N/A')} (score: {src.get('similarity_score', 0):.2f})")
                 
                 logger.info(f"✅ Respuesta de RAG recibida ({len(answer)} chars)")
                 return answer
@@ -97,7 +106,8 @@ class RAGClient:
         """
         try:
             async with httpx.AsyncClient(timeout=5) as client:
-                response = await client.get(f"{self.base_url}/health")
+                # El backend usa /api/v1/health
+                response = await client.get(f"{self.base_url}/api/v1/health")
                 return response.status_code == 200
         except Exception:
             return False

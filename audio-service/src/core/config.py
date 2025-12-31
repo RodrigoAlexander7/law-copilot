@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     elevenlabs_api_key: str
     elevenlabs_voice_id: str = "21m00Tcm4TlvDq8ikWAM"
     
-    # Google Cloud Configuration
-    google_application_credentials: str
+    # Google Cloud Configuration (opcional en producción)
+    google_application_credentials: Optional[str] = None
     google_tts_voice_name: str = "es-US-Neural2-A"
     google_tts_language_code: str = "es-US"
     

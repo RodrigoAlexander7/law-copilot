@@ -104,6 +104,7 @@ async def process_query(request: ProcessQueryRequest):
         return ProcessQueryResponse(
             text_response=rag_response,
             audio_base64=audio_base64,
+            module_type=request.module_type,
             service_used=service_used,
             processing_time_ms=processing_time
         )

@@ -27,15 +27,21 @@ class GoogleTTSService:
         """Lazy initialization del cliente de Google TTS."""
         if self._client is None:
             try:
-                # Establecer variable de entorno para Google Cloud
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.google_application_credentials
+                # Usar la variable de entorno GOOGLE_APPLICATION_CREDENTIALS
+                # que fue configurada por setup_google_credentials() en el startup
+                credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
                 
-                # Crear cliente con credenciales explícitas
-                credentials = service_account.Credentials.from_service_account_file(
-                    settings.google_application_credentials
-                )
-                self._client = texttospeech.TextToSpeechClient(credentials=credentials)
-                logger.info("Cliente Google TTS inicializado")
+                if credentials_path and os.path.exists(credentials_path):
+                    # Crear cliente con credenciales explícitas desde el archivo
+                    credentials = service_account.Credentials.from_service_account_file(
+                        credentials_path
+                    )
+                    self._client = texttospeech.TextToSpeechClient(credentials=credentials)
+                    logger.info(f"Cliente Google TTS inicializado desde: {credentials_path}")
+                else:
+                    # Fallback: intentar con credenciales por defecto
+                    self._client = texttospeech.TextToSpeechClient()
+                    logger.info("Cliente Google TTS inicializado con credenciales por defecto")
             except Exception as e:
                 logger.error(f"Error inicializando Google TTS: {str(e)}")
                 raise

@@ -37,6 +37,7 @@ class ProcessQueryResponse(BaseModel):
     """Response con la respuesta del RAG en audio y texto."""
     text_response: str = Field(..., description="Respuesta en texto del RAG")
     audio_base64: str = Field(..., description="Respuesta en audio (base64)")
+    module_type: ModuleType = Field(..., description="Tipo de módulo que procesó la consulta")
     service_used: str = Field(..., description="Servicio TTS utilizado")
     processing_time_ms: int = Field(..., description="Tiempo de procesamiento en milisegundos")
 
