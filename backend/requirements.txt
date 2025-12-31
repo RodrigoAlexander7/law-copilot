@@ -5,8 +5,8 @@ pydantic-settings
 langchain
 openai
 
-# Google Gemini (alternativa a OpenAI)
-google-generativeai
+# Google Gemini (nuevo SDK oficial)
+google-genai
 
 # PDF Processing
 PyMuPDF

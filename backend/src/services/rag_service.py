@@ -158,7 +158,7 @@ class RAGService:
                 "status": "loaded",
                 "total_documents": vector_store.total_documents
             },
-            "llm_provider": llm_service.provider
+            "llm_provider": "gemini"
         }
 
 

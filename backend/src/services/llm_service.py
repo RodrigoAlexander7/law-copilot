@@ -1,10 +1,9 @@
 """
-Servicio de comunicación con LLMs (OpenAI / Google Gemini).
+Servicio de comunicación con Google Gemini.
 Gestiona la generación de respuestas con contexto legal.
 """
-import os
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict
+from typing import Optional
 from src.core.config import settings
 
 
@@ -22,13 +21,13 @@ class BaseLLMService(ABC):
         pass
 
 
-class OpenAIService(BaseLLMService):
-    """Servicio de OpenAI GPT."""
+class GeminiService(BaseLLMService):
+    """Servicio de Google Gemini usando el nuevo SDK google-genai."""
     
-    def __init__(self, model: str = "gpt-4o-mini"):
-        from openai import AsyncOpenAI
+    def __init__(self, model: str = "gemini-2.0-flash"):
+        from google import genai
         
-        self.client = AsyncOpenAI(api_key=settings.openai_api_key)
+        self.client = genai.Client(api_key=settings.gemini_api_key)
         self.model = model
     
     async def generate(
@@ -37,49 +36,20 @@ class OpenAIService(BaseLLMService):
         system_prompt: Optional[str] = None,
         temperature: float = 0.1
     ) -> str:
-        messages = []
+        from google.genai import types
         
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        
-        messages.append({"role": "user", "content": prompt})
-        
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
+        # Construir configuración
+        config = types.GenerateContentConfig(
             temperature=temperature,
-            max_tokens=2000
+            max_output_tokens=2000,
+            system_instruction=system_prompt
         )
         
-        return response.choices[0].message.content
-
-
-class GeminiService(BaseLLMService):
-    """Servicio de Google Gemini."""
-    
-    def __init__(self, model: str = "gemini-1.5-flash"):
-        import google.generativeai as genai
-        
-        genai.configure(api_key=settings.gemini_api_key)
-        self.model = genai.GenerativeModel(model)
-    
-    async def generate(
-        self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        temperature: float = 0.1
-    ) -> str:
-        # Gemini combina system prompt con el prompt del usuario
-        full_prompt = prompt
-        if system_prompt:
-            full_prompt = f"{system_prompt}\n\n{prompt}"
-        
-        response = await self.model.generate_content_async(
-            full_prompt,
-            generation_config={
-                "temperature": temperature,
-                "max_output_tokens": 2000
-            }
+        # Llamada async al modelo
+        response = await self.client.aio.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=config
         )
         
         return response.text
@@ -87,8 +57,8 @@ class GeminiService(BaseLLMService):
 
 class LLMService:
     """
-    Servicio unificado de LLM con prompts especializados en derecho peruano.
-    Selecciona automáticamente el proveedor según las API keys disponibles.
+    Servicio de LLM con prompts especializados en derecho peruano.
+    Utiliza Google Gemini como proveedor.
     """
     
     SYSTEM_PROMPT = """Eres un asistente legal especializado en el marco jurídico peruano. 
@@ -109,37 +79,19 @@ FORMATO DE RESPUESTA:
 
 IMPORTANTE: Eres un asistente informativo, NO un abogado. Siempre recomienda consultar con un profesional para casos específicos."""
 
-    def __init__(self, provider: Optional[str] = None):
-        """
-        Inicializa el servicio LLM.
-        
-        Args:
-            provider: 'openai', 'gemini', o None para auto-detectar
-        """
-        self.provider = provider or self._detect_provider()
-        self._service: Optional[BaseLLMService] = None
-    
-    def _detect_provider(self) -> str:
-        """Detecta qué proveedor usar según las API keys disponibles."""
-        if settings.openai_api_key:
-            return "openai"
-        elif settings.gemini_api_key:
-            return "gemini"
-        else:
+    def __init__(self):
+        """Inicializa el servicio LLM con Gemini."""
+        if not settings.gemini_api_key:
             raise ValueError(
-                "No se encontró ninguna API key. "
-                "Configura OPENAI_API_KEY o GEMINI_API_KEY en el archivo .env"
+                "No se encontró GEMINI_API_KEY. "
+                "Configúrala en el archivo .env"
             )
+        self._service: Optional[GeminiService] = None
     
-    def _get_service(self) -> BaseLLMService:
+    def _get_service(self) -> GeminiService:
         """Obtiene o crea la instancia del servicio."""
         if self._service is None:
-            if self.provider == "openai":
-                self._service = OpenAIService()
-            elif self.provider == "gemini":
-                self._service = GeminiService()
-            else:
-                raise ValueError(f"Proveedor no soportado: {self.provider}")
+            self._service = GeminiService()
         return self._service
     
     async def generate_response(
