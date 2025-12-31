@@ -7,6 +7,7 @@ export default function DebateChatScreen() {
 
   // Parse config from params
   const config = params.config ? JSON.parse(params.config as string) : null;
+  const sessionId = params.sessionId as string | undefined;
 
   if (!config) {
     return null;
@@ -24,6 +25,7 @@ export default function DebateChatScreen() {
       systemPrompt={systemPrompt}
       initialGreeting={initialGreeting}
       moduleType="simulation"
+      sessionId={sessionId}
     />
   );
 }

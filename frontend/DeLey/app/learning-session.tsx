@@ -12,6 +12,7 @@ export default function LearningSession() {
 
   // Parse educator data from params
   const educator = params.educator ? JSON.parse(params.educator as string) : null;
+  const sessionId = params.sessionId as string | undefined;
   
   useEffect(() => {
     // Simulate loading educator data and prompts
@@ -53,6 +54,7 @@ export default function LearningSession() {
           systemPrompt={educatorPrompt.systemPrompt}
           initialGreeting={educatorPrompt.initialGreeting}
           moduleType="teaching"
+          sessionId={sessionId}
         />
       )}
     </SafeAreaView>

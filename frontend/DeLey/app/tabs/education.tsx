@@ -10,10 +10,7 @@ import { useRouter } from "expo-router";
 import StarsBackground from "../../components/StarsBackground";
 import SearchBar from "../../components/SearchBar";
 import ModelCard, { LegalModel } from "../../components/ModelCard";
-import ConversationHistory, {
-  Conversation,
-  saveConversation,
-} from "../../components/ConversationHistory";
+import ChatHistory from "../../components/ChatHistory";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import CustomAlert from "../../components/CustomAlert";
 
@@ -133,18 +130,6 @@ export default function EducationModule() {
     try {
       setIsLoading(true);
       
-      // Save conversation to local storage
-      const conversationId = await saveConversation({
-        modelName: model.name,
-        modelAvatar: model.avatar,
-        startedAt: new Date(),
-        lastMessage: `Started learning ${model.specialty}`,
-        messageCount: 0,
-      });
-
-      // Refresh history
-      setRefreshHistory((prev) => prev + 1);
-
       // Small delay before navigation
       await new Promise(resolve => setTimeout(resolve, 300));
       
@@ -169,17 +154,47 @@ export default function EducationModule() {
     }
   };
 
-  const handleContinueConversation = (conversation: Conversation) => {
-    setAlertConfig({
-      visible: true,
-      title: "Continue Learning",
-      message: `Continuing conversation with ${conversation.modelName}. In a full implementation, this would open the chat interface with previous messages.`,
-      buttons: [{ text: "Got it!", style: "default" }],
-    });
-  };
-
-  const handleDeleteConversation = (conversationId: string) => {
-    setRefreshHistory((prev) => prev + 1);
+  const handleContinueConversation = async (sessionId: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Load session to get educator info
+      const { chatStorageService } = await import("../../services/chatStorageService");
+      const session = await chatStorageService.loadSession("teaching", sessionId);
+      
+      if (!session) {
+        throw new Error("Session not found");
+      }
+      
+      // Find the educator model
+      const educator = LEGAL_MODELS.find(m => m.id === session.educatorId);
+      
+      if (!educator) {
+        throw new Error("Educator not found");
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Navigate with sessionId to continue conversation
+      router.push({
+        pathname: "/learning-session",
+        params: { 
+          educator: JSON.stringify(educator),
+          sessionId: sessionId
+        },
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      setAlertConfig({
+        visible: true,
+        title: "Error",
+        message: "Failed to continue conversation. Please try again.",
+        buttons: [{ text: "OK", style: "default" }],
+      });
+    }
   };
 
   return (
@@ -230,10 +245,10 @@ export default function EducationModule() {
           )}
         </View>
 
-        {/* Conversation History */}
-        <ConversationHistory
+        {/* Chat History */}
+        <ChatHistory
+          moduleType="teaching"
           onContinue={handleContinueConversation}
-          onDelete={handleDeleteConversation}
           refreshTrigger={refreshHistory}
         />
       </ScrollView>

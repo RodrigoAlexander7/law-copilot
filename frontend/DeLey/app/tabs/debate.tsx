@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import StarsBackground from "../../components/StarsBackground";
-import DebateHistory, { DebateConfig, saveDebateConfig } from "../../components/DebateHistory";
+import ChatHistory from "../../components/ChatHistory";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import CustomAlert from "../../components/CustomAlert";
 
@@ -113,12 +113,6 @@ export default function DebateModule() {
     try {
       setIsLoading(true);
       
-      // Save config to history
-      await saveDebateConfig(config);
-      
-      // Refresh history
-      setRefreshHistory((prev) => prev + 1);
-      
       await new Promise(resolve => setTimeout(resolve, 300));
       
       // Navigate to debate chat
@@ -141,15 +135,55 @@ export default function DebateModule() {
     }
   };
 
-  const handleContinueDebate = (config: DebateConfig) => {
-    router.push({
-      pathname: "/debate-chat",
-      params: { config: JSON.stringify(config) },
-    });
-  };
-
-  const handleDeleteDebate = (configId: string) => {
-    setRefreshHistory((prev) => prev + 1);
+  const handleContinueDebate = async (sessionId: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Load session to get config
+      const { chatStorageService } = await import("../../services/chatStorageService");
+      const session = await chatStorageService.loadSession("simulation", sessionId);
+      
+      if (!session) {
+        throw new Error("Session not found");
+      }
+      
+      // Create config from session
+      const config = {
+        modelName: session.educatorName,
+        modelAvatar: session.educatorAvatar,
+        topic: "Debate",
+        position: "For" as "For" | "Against" | "Neutral",
+        aggressiveness: 50,
+        formality: 50,
+        empathy: 50,
+        humor: 20,
+        voiceTone: "Professional",
+        paceStyle: "Moderate",
+        argumentStyle: "Balanced",
+      };
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Navigate with sessionId
+      router.push({
+        pathname: "/debate-chat",
+        params: { 
+          config: JSON.stringify(config),
+          sessionId: sessionId
+        },
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      setAlertConfig({
+        visible: true,
+        title: "Error",
+        message: "Failed to continue debate. Please try again.",
+        buttons: [{ text: "OK", style: "default" }],
+      });
+    }
   };
 
   const renderSlider = (
@@ -324,9 +358,9 @@ export default function DebateModule() {
         </View>
 
         {/* Debate History */}
-        <DebateHistory
+        <ChatHistory
+          moduleType="simulation"
           onContinue={handleContinueDebate}
-          onDelete={handleDeleteDebate}
           refreshTrigger={refreshHistory}
         />
       </ScrollView>

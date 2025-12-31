@@ -16,7 +16,8 @@ import * as FileSystem from "expo-file-system/legacy";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { BlurView } from "expo-blur";
-import { transcribeAudio, processQuery } from "../services/audioService";
+import { transcribeAudio, queryRAG, textToSpeech } from "../services/audioService";
+import { chatStorageService, ChatSession } from "../services/chatStorageService";
 
 const { width, height } = Dimensions.get("window");
 
@@ -42,6 +43,7 @@ interface VoiceChatProps {
   systemPrompt: string;
   initialGreeting: string;
   moduleType?: "teaching" | "simulation" | "advisor";
+  sessionId?: string; // For loading existing conversations
 }
 
 export default function VoiceChat({
@@ -51,6 +53,7 @@ export default function VoiceChat({
   systemPrompt,
   initialGreeting,
   moduleType = "teaching",
+  sessionId,
 }: VoiceChatProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -62,25 +65,46 @@ export default function VoiceChat({
   const [showHoldMessage, setShowHoldMessage] = useState(false);
   const [userTurn, setUserTurn] = useState(true);
   const [isRecordingReady, setIsRecordingReady] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string>(
+    sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  );
 
   const glowAnimation = useRef(new Animated.Value(0)).current;
   const holdMessageOpacity = useRef(new Animated.Value(0)).current;
+  const voicePulseAnimation = useRef(new Animated.Value(1)).current;
   const pressTimeRef = useRef<number>(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const audioPlayerRef = useRef<Audio.Sound | null>(null);
+  const meteringIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize with greeting from educator
+  // Initialize with greeting or load existing session
   useEffect(() => {
-    const greeting: Message = {
-      id: "greeting",
-      role: "assistant",
-      content: initialGreeting,
-      timestamp: new Date(),
+    const initializeChat = async () => {
+      if (sessionId) {
+        // Load existing session
+        const session = await chatStorageService.loadSession(moduleType, sessionId);
+        if (session && session.messages.length > 0) {
+          setMessages(session.messages);
+          setCurrentSessionId(session.id);
+          setUserTurn(true);
+          return;
+        }
+      }
+      
+      // New session - show greeting
+      const greeting: Message = {
+        id: "greeting",
+        role: "assistant",
+        content: initialGreeting,
+        timestamp: new Date(),
+      };
+      setMessages([greeting]);
+      setUserTurn(true);
     };
-    setMessages([greeting]);
-    setUserTurn(true);
-  }, [initialGreeting]);
+    
+    initializeChat();
+  }, [initialGreeting, sessionId, moduleType]);
 
   // Glow animation for user turn
   useEffect(() => {
@@ -103,6 +127,49 @@ export default function VoiceChat({
       glowAnimation.setValue(0);
     }
   }, [userTurn, isProcessing]);
+
+  // Voice pulse animation when recording
+  useEffect(() => {
+    if (isRecording) {
+      // Continuous pulse animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(voicePulseAnimation, {
+            toValue: 1.3,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(voicePulseAnimation, {
+            toValue: 0.9,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      voicePulseAnimation.setValue(1);
+    }
+  }, [isRecording]);
+
+  // Save session whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      const saveSession = async () => {
+        const session: ChatSession = {
+          id: currentSessionId,
+          moduleType,
+          educatorId,
+          educatorName,
+          educatorAvatar,
+          messages,
+          startedAt: new Date(messages[0].timestamp),
+          lastMessageAt: new Date(messages[messages.length - 1].timestamp),
+        };
+        await chatStorageService.saveSession(session);
+      };
+      saveSession();
+    }
+  }, [messages, currentSessionId, moduleType, educatorId, educatorName, educatorAvatar]);
 
   // Request audio permissions
   useEffect(() => {
@@ -228,15 +295,24 @@ export default function VoiceChat({
     setUserTurn(false);
 
     try {
-      // Convert audio to base64
+      // Step 1: Convert audio to base64
       const audioBase64 = await convertAudioToBase64(audioUri);
       
-      // Transcribe using STT service
-      console.log("🎤 Transcribing audio...");
-      const transcription = await transcribeAudio(audioBase64);
-      console.log("✅ Transcription:", transcription);
+      // Step 2: Transcribe using STT service
+      console.log("🎤 Step 1: Transcribing audio...");
+      let transcription: string;
+      try {
+        transcription = await transcribeAudio(audioBase64);
+        console.log("✅ Transcription:", transcription);
+      } catch (error) {
+        console.error("❌ STT Error:", error);
+        alert("Error al transcribir el audio. Por favor, intenta de nuevo.");
+        setIsProcessing(false);
+        setUserTurn(true);
+        return;
+      }
 
-      // Add user message with real transcription
+      // Add user message with transcription
       const userMessage: Message = {
         id: `user-${Date.now()}`,
         role: "user",
@@ -247,24 +323,52 @@ export default function VoiceChat({
 
       setMessages((prev) => [...prev, userMessage]);
 
-      // Get RAG response with text and audio
-      console.log(`🤖 Getting ${moduleType} response...`);
-      const ragResponse = await processQuery(transcription, moduleType);
-      console.log("✅ RAG Response:", ragResponse);
+      // Step 3: Query RAG service for legal response
+      console.log(`📚 Step 2: Querying RAG service...`);
+      let ragResponse;
+      try {
+        ragResponse = await queryRAG(transcription, 5, 0.3);
+        console.log("✅ RAG Answer:", ragResponse.answer);
+        console.log(`📖 Sources: ${ragResponse.total_sources_found}`);
+      } catch (error) {
+        console.error("❌ RAG Query Error:", error);
+        alert("Error al consultar la base de conocimientos legal. Por favor, intenta de nuevo.");
+        setIsProcessing(false);
+        setUserTurn(true);
+        return;
+      }
 
-      // Add educator message
+      // Step 4: Convert response to speech
+      console.log(`🔊 Step 3: Converting text to speech...`);
+      let audioBase64Response: string;
+      try {
+        audioBase64Response = await textToSpeech(ragResponse.answer, moduleType);
+        console.log("✅ TTS: Audio generated");
+      } catch (error) {
+        console.error("❌ TTS Error:", error);
+        // Still show the text response even if TTS fails
+        alert("Error al generar audio. Se mostrará solo la respuesta de texto.");
+        audioBase64Response = "";
+      }
+
+      // Add assistant message with RAG answer
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
-        content: ragResponse.text_response,
+        content: ragResponse.answer,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Play audio response
-      if (ragResponse.audio_base64) {
-        await playAudioResponse(ragResponse.audio_base64);
+      // Step 5: Play audio response if available
+      if (audioBase64Response) {
+        try {
+          await playAudioResponse(audioBase64Response);
+        } catch (error) {
+          console.error("❌ Audio Playback Error:", error);
+          alert("Error al reproducir el audio. La respuesta está visible en el chat.");
+        }
       }
       
       // Scroll to bottom
@@ -272,8 +376,8 @@ export default function VoiceChat({
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error) {
-      console.error("❌ Error processing audio:", error);
-      alert("Failed to process audio. Please try again.");
+      console.error("❌ Unexpected error processing audio:", error);
+      alert("Ha ocurrido un error inesperado. Por favor, intenta de nuevo.");
     } finally {
       setIsProcessing(false);
       setUserTurn(true);
@@ -345,6 +449,15 @@ export default function VoiceChat({
     }
   };
 
+  const formatTime = (date: Date): string => {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    return `${displayHours}:${displayMinutes} ${ampm}`;
+  };
+
   const glowColor = glowAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: ["rgba(255, 107, 107, 0.3)", "rgba(255, 107, 107, 0.8)"],
@@ -404,19 +517,29 @@ export default function VoiceChat({
             {message.role === "assistant" && (
               <Text style={styles.messageAvatar}>{educatorAvatar}</Text>
             )}
-            <View
-              style={[
-                styles.messageBubble,
-                message.role === "user" ? styles.userBubble : styles.assistantBubble,
-              ]}
-            >
-              <Text
+            <View style={{ flex: 1 }}>
+              <View
                 style={[
-                  styles.messageText,
-                  message.role === "user" ? styles.userText : styles.assistantText,
+                  styles.messageBubble,
+                  message.role === "user" ? styles.userBubble : styles.assistantBubble,
                 ]}
               >
-                {message.content}
+                <Text
+                  style={[
+                    styles.messageText,
+                    message.role === "user" ? styles.userText : styles.assistantText,
+                  ]}
+                >
+                  {message.content}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.messageTime,
+                  message.role === "user" ? styles.userTime : styles.assistantTime,
+                ]}
+              >
+                {formatTime(message.timestamp)}
               </Text>
             </View>
           </View>
@@ -443,7 +566,7 @@ export default function VoiceChat({
         </Animated.View>
       )}
 
-      {/* Microphone Button with Glow */}
+      {/* Microphone Button with Glow and Voice Animation */}
       <View style={[styles.micContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         {userTurn && !isProcessing && (
           <Animated.View
@@ -464,21 +587,27 @@ export default function VoiceChat({
           />
         )}
 
-        <TouchableOpacity
-          onPressIn={startRecording}
-          onPressOut={stopRecording}
-          disabled={!userTurn || isProcessing || isEncoding}
-          style={[
-            styles.micButton,
-            isRecording && styles.micButtonRecording,
-            (!userTurn || isProcessing || isEncoding) && styles.micButtonDisabled,
-          ]}
-          activeOpacity={0.8}
+        <Animated.View
+          style={{
+            transform: [{ scale: isRecording ? voicePulseAnimation : 1 }],
+          }}
         >
-          <Text style={styles.micIcon}>
-            {isRecording ? "🔴" : "🎤"}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPressIn={startRecording}
+            onPressOut={stopRecording}
+            disabled={!userTurn || isProcessing || isEncoding}
+            style={[
+              styles.micButton,
+              isRecording && styles.micButtonRecording,
+              (!userTurn || isProcessing || isEncoding) && styles.micButtonDisabled,
+            ]}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.micIcon}>
+              {isRecording ? "🔴" : "🎤"}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
 
         <Text style={styles.micHint}>
           {isRecording
@@ -576,6 +705,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "flex-start",
+    gap: 8,
   },
   messageAvatar: {
     fontSize: 32,
@@ -590,14 +720,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+    marginBottom: 4,
   },
   userBubble: {
     backgroundColor: "#ff6b6b",
+    borderBottomRightRadius: 4,
   },
   assistantBubble: {
     backgroundColor: "#1e293b",
     borderWidth: 1,
     borderColor: "rgba(255, 107, 107, 0.3)",
+    borderBottomLeftRadius: 4,
   },
   messageText: {
     fontSize: 16,
@@ -608,6 +741,22 @@ const styles = StyleSheet.create({
   },
   assistantText: {
     color: "#e2e8f0",
+  },
+  messageTime: {
+    fontSize: 11,
+    fontWeight: "500",
+    opacity: 0.7,
+    marginTop: 2,
+  },
+  userTime: {
+    color: "#ffffff",
+    textAlign: "right",
+    marginRight: 4,
+  },
+  assistantTime: {
+    color: "#94a3b8",
+    textAlign: "left",
+    marginLeft: 4,
   },
   processingIndicator: {
     alignSelf: "flex-start",

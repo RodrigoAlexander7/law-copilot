@@ -10,9 +10,7 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import StarsBackground from "../../components/StarsBackground";
 import AdvisorCard, { LegalAdvisor } from "../../components/AdvisorCard";
-import ConsultationHistory, {
-  Consultation,
-} from "../../components/ConsultationHistory";
+import ChatHistory from "../../components/ChatHistory";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import CustomAlert from "../../components/CustomAlert";
 
@@ -130,22 +128,58 @@ export default function AdvisorModule() {
     }
   };
 
-  const handleContinueConsultation = (consultation: Consultation) => {
-    router.push({
-      pathname: "/advisor-chat",
-      params: { advisor: JSON.stringify({
-        id: consultation.advisorId,
-        name: consultation.advisorName,
-        avatar: consultation.advisorAvatar,
-        title: "Legal Advisor",
-        specialties: [],
-        description: "",
-      }) },
-    });
-  };
-
-  const handleDeleteConsultation = (consultationId: string) => {
-    setRefreshHistory((prev) => prev + 1);
+  const handleContinueConsultation = async (sessionId: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Load session to get advisor info
+      const { chatStorageService } = await import("../../services/chatStorageService");
+      const session = await chatStorageService.loadSession("advisor", sessionId);
+      
+      if (!session) {
+        throw new Error("Session not found");
+      }
+      
+      // Find or create advisor from session
+      let advisor = LEGAL_ADVISORS.find(a => `advisor-${a.id}` === session.educatorId);
+      
+      if (!advisor) {
+        // Create advisor from session data
+        advisor = {
+          id: session.educatorId.replace("advisor-", ""),
+          name: session.educatorName,
+          avatar: session.educatorAvatar,
+          title: "Legal Advisor",
+          specialties: [],
+          rating: 4.8,
+          languages: ["English"],
+          tags: [],
+          description: "",
+        };
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Navigate with sessionId
+      router.push({
+        pathname: "/advisor-chat",
+        params: { 
+          advisor: JSON.stringify(advisor),
+          sessionId: sessionId
+        },
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      setAlertConfig({
+        visible: true,
+        title: "Error",
+        message: "Failed to continue consultation. Please try again.",
+        buttons: [{ text: "OK", style: "default" }],
+      });
+    }
   };
 
   return (
@@ -189,10 +223,10 @@ export default function AdvisorModule() {
         </View>
 
         {/* Consultation History */}
-        <ConsultationHistory
-          refreshTrigger={refreshHistory}
+        <ChatHistory
+          moduleType="advisor"
           onContinue={handleContinueConsultation}
-          onDelete={handleDeleteConsultation}
+          refreshTrigger={refreshHistory}
         />
       </ScrollView>
 

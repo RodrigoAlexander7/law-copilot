@@ -1,31 +1,13 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useLocalSearchParams } from "expo-router";
 import VoiceChat from "../components/VoiceChat";
-import { saveConsultation } from "../components/ConsultationHistory";
 
 export default function AdvisorChatScreen() {
   const params = useLocalSearchParams();
 
   // Parse advisor from params
   const advisor = params.advisor ? JSON.parse(params.advisor as string) : null;
-
-  // Save consultation on first load (if not continuing)
-  useEffect(() => {
-    if (advisor && !params.continuing) {
-      saveConsultation({
-        advisorId: advisor.id,
-        advisorName: advisor.name,
-        advisorAvatar: advisor.avatar,
-        topic: "New Consultation",
-        category: advisor.specialties?.[0] || "General",
-        status: "Active",
-        startedAt: new Date(),
-        lastMessage: "Consultation started",
-        messageCount: 0,
-        priority: "Medium",
-      }).catch(console.error);
-    }
-  }, []);
+  const sessionId = params.sessionId as string | undefined;
 
   if (!advisor) {
     return null;
@@ -43,6 +25,7 @@ export default function AdvisorChatScreen() {
       systemPrompt={systemPrompt}
       initialGreeting={initialGreeting}
       moduleType="advisor"
+      sessionId={sessionId}
     />
   );
 }
