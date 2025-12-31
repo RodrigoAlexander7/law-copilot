@@ -48,9 +48,18 @@ class RetrieveRequest(BaseModel):
 
 class SourceHierarchy(BaseModel):
     """Jerarquía de un documento legal."""
-    title: str = Field(default="", description="Título principal")
-    chapter: str = Field(default="", description="Capítulo")
-    section: str = Field(default="", description="Sección")
+    title: Optional[str] = Field(default="", description="Título principal")
+    chapter: Optional[str] = Field(default="", description="Capítulo")
+    section: Optional[str] = Field(default="", description="Sección")
+    
+    def model_post_init(self, __context) -> None:
+        """Convierte None a string vacío después de la validación."""
+        if self.title is None:
+            object.__setattr__(self, 'title', "")
+        if self.chapter is None:
+            object.__setattr__(self, 'chapter', "")
+        if self.section is None:
+            object.__setattr__(self, 'section', "")
 
 
 class SourceDocument(BaseModel):

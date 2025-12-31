@@ -41,15 +41,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Legal AI Assistant - Perú",
     description="""
-    🏛️ **Asistente Legal basado en IA para el marco jurídico peruano**
+    Asistente Legal basado en IA para el marco jurídico peruano
     
     Este servicio utiliza RAG (Retrieval-Augmented Generation) para responder 
     consultas legales basándose en:
     
-    - 📜 Constitución Política del Perú (1993)
-    - 📕 Código Civil del Perú
-    - 🛒 Código de Protección al Consumidor (Ley 29571)
-    - ⚖️ Ley 30364 - Violencia contra la Mujer
+    - Constitución Política del Perú (1993)
+    - Código Civil del Perú
+    - Código de Protección al Consumidor (Ley 29571)
+    - Ley 30364 - Violencia contra la Mujer
     
     ---
     
