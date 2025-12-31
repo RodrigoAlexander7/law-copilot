@@ -4,6 +4,7 @@ Orquesta el flujo completo: query → embedding → búsqueda → generación.
 """
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
+from src.core.config import settings
 from src.infrastructure.embedder import LegalEmbedder
 from src.infrastructure.vector_store import vector_store
 from src.services.llm_service import llm_service
@@ -33,12 +34,13 @@ class RAGService:
     
     def __init__(
         self,
-        top_k: int = 5,
-        score_threshold: float = 0.3,
-        temperature: float = 0.1
+        top_k: Optional[int] = None,
+        score_threshold: Optional[float] = None,
+        temperature: Optional[float] = None
     ):
         """
         Inicializa el servicio RAG.
+        Usa valores de settings por defecto.
         
         Args:
             top_k: Número de documentos a recuperar
@@ -46,9 +48,9 @@ class RAGService:
             temperature: Creatividad del LLM
         """
         self.embedder = LegalEmbedder()
-        self.top_k = top_k
-        self.score_threshold = score_threshold
-        self.temperature = temperature
+        self.top_k = top_k or settings.rag_top_k
+        self.score_threshold = score_threshold or settings.rag_score_threshold
+        self.temperature = temperature or settings.llm_temperature
     
     async def query(
         self,

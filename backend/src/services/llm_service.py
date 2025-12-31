@@ -24,24 +24,27 @@ class BaseLLMService(ABC):
 class GeminiService(BaseLLMService):
     """Servicio de Google Gemini usando el nuevo SDK google-genai."""
     
-    def __init__(self, model: str = "gemini-2.0-flash"):
+    def __init__(self):
         from google import genai
         
         self.client = genai.Client(api_key=settings.gemini_api_key)
-        self.model = model
+        self.model = settings.llm_model
     
     async def generate(
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
-        temperature: float = 0.1
+        temperature: Optional[float] = None
     ) -> str:
         from google.genai import types
         
+        # Usar valores de settings si no se especifican
+        temp = temperature if temperature is not None else settings.llm_temperature
+        
         # Construir configuración
         config = types.GenerateContentConfig(
-            temperature=temperature,
-            max_output_tokens=2000,
+            temperature=temp,
+            max_output_tokens=settings.llm_max_tokens,
             system_instruction=system_prompt
         )
         

@@ -20,8 +20,8 @@ class LegalEmbedder:
         return cls._instance
     
     def _initialize(self):
-        print(f"Cargando modelo: {settings.EMBEDDING_MODEL}...")
-        self.model = SentenceTransformer(settings.EMBEDDING_MODEL, device='cpu')
+        print(f"Cargando modelo: {settings.embedding_model}...")
+        self.model = SentenceTransformer(settings.embedding_model, device='cpu')
         self.embedding_dim = self.model.get_sentence_embedding_dimension()
         print(f"Modelo cargado. Dimensiones: {self.embedding_dim}")
     
