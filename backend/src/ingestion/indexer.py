@@ -8,6 +8,7 @@ from typing import List, Dict, Optional
 from tqdm import tqdm  # Para barra de progreso
 from pathlib import Path
 
+from src.infrastructure.embedder import LegalEmbedder
 # Import relativo para cuando se ejecuta como módulo
 try:
     from src.core.config import settings
@@ -23,9 +24,9 @@ class LegalIndexer:
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.model_name = model_name
+        self.embedder = LegalEmbedder()
         
-        print(f"🔄 Cargando modelo de embeddings: {model_name}...")
-        # Usamos device='cpu' por defecto, cambia a 'cuda' si tienes GPU NVIDIA
+        print(f"Cargando modelo de embeddings: {model_name}...")
         self.model = SentenceTransformer(model_name, device='cpu')
         
         # Dimensiones del modelo (mpnet-base suele ser 768)
@@ -51,55 +52,6 @@ class LegalIndexer:
         print(f"✅ Total de artículos cargados: {len(all_documents)}")
         return all_documents
 
-    def prepare_text_for_embedding(self, doc: Dict) -> str:
-        """
-        Estrategia de Enriquecimiento:
-        Concatena Jerarquía + Fuente + Artículo para dar contexto semántico total.
-        """
-        hierarchy = doc.get('hierarchy', {})
-        source_type = doc.get('source_type', '').capitalize()
-        
-        # Construimos una cadena rica en contexto
-        # Ej: "Constitución. Título I De la Persona. Artículo 1. La defensa de la persona..."
-        context_parts = [
-            source_type,
-            hierarchy.get('level_1', ''),
-            hierarchy.get('level_2', ''),
-            doc['payload']['label'], # "Artículo X"
-            doc['payload']['text_content']
-        ]
-        
-        # Unimos filtrando nulos o vacíos
-        full_text = ". ".join([p for p in context_parts if p and p.strip()])
-        return full_text
-
-    def generate_embeddings(self, documents: List[Dict], batch_size: int = 32) -> np.ndarray:
-        """
-        Genera embeddings para todos los documentos.
-        
-        Args:
-            documents: Lista de documentos a vectorizar
-            batch_size: Tamaño del batch para procesamiento
-            
-        Returns:
-            Array numpy con los embeddings (n_docs, embedding_dim)
-        """
-        print(f"🧮 Generando embeddings para {len(documents)} documentos...")
-        
-        # Preparar textos enriquecidos
-        texts = [self.prepare_text_for_embedding(doc) for doc in documents]
-        
-        # Generar embeddings en batches con barra de progreso
-        embeddings = self.model.encode(
-            texts,
-            batch_size=batch_size,
-            show_progress_bar=True,
-            convert_to_numpy=True,
-            normalize_embeddings=True  # Normalizar para usar producto punto como similitud
-        )
-        
-        print(f"✅ Embeddings generados: shape {embeddings.shape}")
-        return embeddings
 
     def build_faiss_index(self, embeddings: np.ndarray) -> faiss.Index:
         """
@@ -110,7 +62,7 @@ class LegalIndexer:
         
         Para datasets muy grandes (>1M), considera usar IndexIVFFlat o IndexHNSW.
         """
-        print(f"🔨 Construyendo índice FAISS...")
+        print(f"Building FAISS index...")
         
         # Asegurar que los embeddings son float32 (requerido por FAISS)
         embeddings = embeddings.astype(np.float32)
@@ -121,7 +73,7 @@ class LegalIndexer:
         # Agregar los vectores al índice
         index.add(embeddings)
         
-        print(f"✅ Índice FAISS creado con {index.ntotal} vectores")
+        print(f" FAISS index created with {index.ntotal} vectors")
         return index
 
     def save_index(self, 
@@ -140,14 +92,14 @@ class LegalIndexer:
         # Guardar índice FAISS
         faiss_path = os.path.join(self.output_dir, f"{index_name}.faiss")
         faiss.write_index(index, faiss_path)
-        print(f"💾 Índice guardado en: {faiss_path}")
+        print(f"Índice guardado en: {faiss_path}")
         
         # Guardar metadatos (documentos originales)
         # Esto permite recuperar el artículo completo cuando encontramos un match
         metadata_path = os.path.join(self.output_dir, f"{index_name}_metadata.pkl")
         with open(metadata_path, 'wb') as f:
             pickle.dump(documents, f)
-        print(f"💾 Metadatos guardados en: {metadata_path}")
+        print(f"Metadatos guardados en: {metadata_path}")
         
         # Guardar también un JSON con estadísticas del índice
         stats = {
@@ -160,7 +112,7 @@ class LegalIndexer:
         stats_path = os.path.join(self.output_dir, f"{index_name}_stats.json")
         with open(stats_path, 'w', encoding='utf-8') as f:
             json.dump(stats, f, ensure_ascii=False, indent=2)
-        print(f"📊 Estadísticas guardadas en: {stats_path}")
+        print(f"Estadísticas guardadas en: {stats_path}")
 
     def run(self, index_name: str = "legal_index") -> None:
         """
@@ -171,7 +123,7 @@ class LegalIndexer:
         4. Guardar índice y metadatos
         """
         print("\n" + "="*60)
-        print("🚀 INICIANDO INDEXACIÓN LEGAL")
+        print("Initializing legal documentation")
         print("="*60)
         
         # 1. Cargar documentos
@@ -182,7 +134,7 @@ class LegalIndexer:
             return
         
         # 2. Generar embeddings
-        embeddings = self.generate_embeddings(documents)
+        embeddings = self.embedder.embed_documents(documents)
         
         # 3. Construir índice
         index = self.build_faiss_index(embeddings)
