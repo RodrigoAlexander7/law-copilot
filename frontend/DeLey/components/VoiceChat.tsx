@@ -155,17 +155,25 @@ export default function VoiceChat({
   useEffect(() => {
     if (messages.length > 0) {
       const saveSession = async () => {
-        const session: ChatSession = {
-          id: currentSessionId,
-          moduleType,
-          educatorId,
-          educatorName,
-          educatorAvatar,
-          messages,
-          startedAt: new Date(messages[0].timestamp),
-          lastMessageAt: new Date(messages[messages.length - 1].timestamp),
-        };
-        await chatStorageService.saveSession(session);
+        try {
+          const session: ChatSession = {
+            id: currentSessionId,
+            moduleType,
+            educatorId,
+            educatorName,
+            educatorAvatar,
+            messages: messages.map(msg => ({
+              ...msg,
+              timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp)
+            })),
+            startedAt: new Date(messages[0].timestamp),
+            lastMessageAt: new Date(messages[messages.length - 1].timestamp),
+          };
+          await chatStorageService.saveSession(session);
+          console.log("✅ Chat guardado:", currentSessionId);
+        } catch (error) {
+          console.error("❌ Error guardando chat:", error);
+        }
       };
       saveSession();
     }

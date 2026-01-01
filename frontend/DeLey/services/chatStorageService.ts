@@ -36,16 +36,21 @@ class ChatStorageService {
    */
   async saveSession(session: ChatSession): Promise<void> {
     try {
+      console.log("💾 Intentando guardar sesión:", session.id);
       const key = STORAGE_KEYS[session.moduleType];
       const stored = await AsyncStorage.getItem(key);
       let sessions: ChatSession[] = stored ? JSON.parse(stored) : [];
+
+      console.log("📦 Sesiones existentes:", sessions.length);
 
       // Find existing session or add new one
       const existingIndex = sessions.findIndex((s) => s.id === session.id);
       if (existingIndex >= 0) {
         sessions[existingIndex] = session;
+        console.log("🔄 Actualizando sesión existente");
       } else {
         sessions.push(session);
+        console.log("➕ Agregando nueva sesión");
       }
 
       // Sort by most recent first
@@ -56,7 +61,7 @@ class ChatStorageService {
       );
 
       await AsyncStorage.setItem(key, JSON.stringify(sessions));
-      console.log(`✅ Session saved: ${session.id}`);
+      console.log(`✅ Session saved: ${session.id} con ${session.messages.length} mensajes`);
     } catch (error) {
       console.error("❌ Error saving session:", error);
       throw error;
