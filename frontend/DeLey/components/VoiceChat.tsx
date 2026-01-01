@@ -28,12 +28,26 @@ const backgroundImages = {
   advisor: require("../assets/images/advisorBackground.jpg"),
 };
 
+interface Source {
+  id: string;
+  source: string;
+  label: string;
+  text: string;
+  hierarchy: {
+    title: string;
+    chapter: string;
+    section: string;
+  };
+  similarity_score: number;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
   audioBase64?: string;
+  sources?: Source[];
 }
 
 interface VoiceChatProps {
@@ -65,6 +79,7 @@ export default function VoiceChat({
   const [showHoldMessage, setShowHoldMessage] = useState(false);
   const [userTurn, setUserTurn] = useState(true);
   const [isRecordingReady, setIsRecordingReady] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string>(
     sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   );
@@ -187,6 +202,17 @@ export default function VoiceChat({
         alert("Sorry, we need microphone permissions to make this work!");
       }
     })();
+  }, []);
+
+  // Cleanup audio when component unmounts
+  useEffect(() => {
+    return () => {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.stopAsync();
+        audioPlayerRef.current.unloadAsync();
+        audioPlayerRef.current = null;
+      }
+    };
   }, []);
 
   const startRecording = async () => {
@@ -359,12 +385,13 @@ export default function VoiceChat({
         audioBase64Response = "";
       }
 
-      // Add assistant message with RAG answer
+      // Add assistant message with RAG answer and sources
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
         content: ragResponse.answer,
         timestamp: new Date(),
+        sources: ragResponse.sources || [],
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -392,12 +419,27 @@ export default function VoiceChat({
     }
   };
 
+  const stopAudio = async () => {
+    try {
+      if (audioPlayerRef.current) {
+        await audioPlayerRef.current.stopAsync();
+        await audioPlayerRef.current.unloadAsync();
+        audioPlayerRef.current = null;
+        setIsPlayingAudio(false);
+        console.log("🛑 Audio stopped");
+      }
+    } catch (error) {
+      console.error("❌ Error stopping audio:", error);
+    }
+  };
+
   const playAudioResponse = async (audioBase64: string) => {
     try {
       console.log("🔊 Playing audio response...");
       
       // Cleanup previous audio if exists
       if (audioPlayerRef.current) {
+        await audioPlayerRef.current.stopAsync();
         await audioPlayerRef.current.unloadAsync();
         audioPlayerRef.current = null;
       }
@@ -409,16 +451,20 @@ export default function VoiceChat({
       );
       
       audioPlayerRef.current = sound;
+      setIsPlayingAudio(true);
 
       // Cleanup after playback
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
           console.log("✅ Audio playback finished");
           sound.unloadAsync();
+          audioPlayerRef.current = null;
+          setIsPlayingAudio(false);
         }
       });
     } catch (error) {
       console.error("❌ Error playing audio:", error);
+      setIsPlayingAudio(false);
     }
   };
 
@@ -464,6 +510,17 @@ export default function VoiceChat({
     const displayHours = hours % 12 || 12;
     const displayMinutes = minutes.toString().padStart(2, '0');
     return `${displayHours}:${displayMinutes} ${ampm}`;
+  };
+
+  const stripMarkdown = (text: string): string => {
+    return text
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // Bold
+      .replace(/\*([^*]+)\*/g, '$1')     // Italic
+      .replace(/_([^_]+)_/g, '$1')       // Italic underscore
+      .replace(/~~([^~]+)~~/g, '$1')     // Strikethrough
+      .replace(/`([^`]+)`/g, '$1')       // Inline code
+      .replace(/#+\s/g, '')              // Headers
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // Links
   };
 
   const glowColor = glowAnimation.interpolate({
@@ -538,8 +595,27 @@ export default function VoiceChat({
                     message.role === "user" ? styles.userText : styles.assistantText,
                   ]}
                 >
-                  {message.content}
+                  {stripMarkdown(message.content)}
                 </Text>
+                
+                {/* Sources Section */}
+                {message.role === "assistant" && message.sources && message.sources.length > 0 && (
+                  <View style={styles.sourcesContainer}>
+                    <Text style={styles.sourcesTitle}>📚 Fuentes consultadas:</Text>
+                    {message.sources.map((source, index) => (
+                      <View key={source.id} style={styles.sourceItem}>
+                        <Text style={styles.sourceLabel}>• {source.label}</Text>
+                        <Text style={styles.sourceHierarchy}>
+                          {source.hierarchy.title}
+                          {source.hierarchy.chapter && ` > ${source.hierarchy.chapter}`}
+                        </Text>
+                        <Text style={styles.sourceText} numberOfLines={2}>
+                          {source.text.substring(0, 120)}...
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
               <Text
                 style={[
@@ -572,6 +648,19 @@ export default function VoiceChat({
             <Text style={styles.holdMessageText}>Hold the mic to speak</Text>
           </BlurView>
         </Animated.View>
+      )}
+
+      {/* Stop Audio Button */}
+      {isPlayingAudio && (
+        <View style={styles.stopAudioContainer}>
+          <TouchableOpacity
+            onPress={stopAudio}
+            style={styles.stopAudioButton}
+          >
+            <Text style={styles.stopAudioIcon}>⏹️</Text>
+            <Text style={styles.stopAudioText}>Detener Audio</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* Microphone Button with Glow and Voice Animation */}
@@ -837,5 +926,66 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#9ca3af",
     fontWeight: "500",
+  },
+  sourcesContainer: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 107, 107, 0.2)",
+  },
+  sourcesTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#ff6b6b",
+    marginBottom: 8,
+  },
+  sourceItem: {
+    marginBottom: 10,
+    paddingLeft: 8,
+  },
+  sourceLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#fca5a5",
+    marginBottom: 2,
+  },
+  sourceHierarchy: {
+    fontSize: 11,
+    color: "#94a3b8",
+    fontStyle: "italic",
+    marginBottom: 4,
+  },
+  sourceText: {
+    fontSize: 11,
+    color: "#cbd5e1",
+    lineHeight: 16,
+  },
+  stopAudioContainer: {
+    position: "absolute",
+    bottom: 180,
+    alignSelf: "center",
+    zIndex: 10,
+  },
+  stopAudioButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(220, 38, 38, 0.9)",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: "#dc2626",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  stopAudioIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  stopAudioText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
