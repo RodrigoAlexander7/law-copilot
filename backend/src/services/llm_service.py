@@ -55,7 +55,7 @@ class GeminiService(BaseLLMService):
             config=config
         )
         
-        return response.text
+        return response.text or ""
 
 
 class LLMService:
@@ -82,6 +82,60 @@ FORMATO DE RESPUESTA:
 
 IMPORTANTE: Eres un asistente informativo, NO un abogado. Siempre recomienda consultar con un profesional para casos específicos."""
 
+    QUERY_REWRITE_PROMPT = """Eres un experto en derecho peruano. Tu tarea es transformar consultas coloquiales de usuarios en búsquedas optimizadas para un sistema de recuperación de documentos legales.
+
+CONTEXTO DEL SISTEMA:
+- Base de datos contiene: Constitución Política del Perú, Código Civil, Código Penal, Ley de Protección al Consumidor, Ley contra la Violencia Familiar, entre otras.
+- El sistema usa embeddings semánticos para buscar artículos relevantes.
+
+INSTRUCCIONES:
+1. Identifica el TEMA LEGAL principal de la consulta
+2. Extrae los CONCEPTOS JURÍDICOS aplicables (ej: "garantía", "defecto de fábrica", "derecho de consumidor")
+3. Genera 2-3 variantes de búsqueda usando terminología legal peruana
+4. Incluye términos que probablemente aparezcan en los artículos de ley
+
+FORMATO DE SALIDA (JSON):
+{
+    "tema_legal": "área del derecho aplicable",
+    "conceptos_clave": ["concepto1", "concepto2"],
+    "queries_optimizadas": [
+        "query legal 1",
+        "query legal 2", 
+        "query legal 3"
+    ],
+    "leyes_relevantes": ["nombre de ley probable 1", "nombre de ley probable 2"]
+}
+
+EJEMPLOS:
+
+Usuario: "Me vendieron un celular que no prende"
+Salida:
+{
+    "tema_legal": "Protección al consumidor - productos defectuosos",
+    "conceptos_clave": ["producto defectuoso", "garantía legal", "derecho a reparación", "derecho a cambio"],
+    "queries_optimizadas": [
+        "derecho del consumidor producto defectuoso garantía reparación cambio devolución",
+        "idoneidad producto responsabilidad proveedor defecto",
+        "garantía implícita producto consumidor reemplazo restitución"
+    ],
+    "leyes_relevantes": ["Código de Protección y Defensa del Consumidor", "Ley 29571"]
+}
+
+Usuario: "Mi vecino hace mucho ruido en las noches"
+Salida:
+{
+    "tema_legal": "Derechos de vecindad - perturbación de la tranquilidad",
+    "conceptos_clave": ["ruidos molestos", "tranquilidad pública", "derechos de vecindad"],
+    "queries_optimizadas": [
+        "perturbación tranquilidad ruidos molestos vecindad",
+        "límites propiedad obligaciones vecinos inmisiones",
+        "contravención tranquilidad pública ruido"
+    ],
+    "leyes_relevantes": ["Código Civil", "Ordenanzas municipales"]
+}
+
+Ahora transforma la siguiente consulta:"""
+
     def __init__(self):
         """Inicializa el servicio LLM con Gemini."""
         if not settings.gemini_api_key:
@@ -97,6 +151,81 @@ IMPORTANTE: Eres un asistente informativo, NO un abogado. Siempre recomienda con
             self._service = GeminiService()
         return self._service
     
+    async def rewrite_query(self, user_query: str) -> dict:
+        """
+        Transforma una consulta coloquial en búsquedas optimizadas para RAG.
+        
+        Args:
+            user_query: Pregunta original del usuario en lenguaje natural
+            
+        Returns:
+            Dict con queries optimizadas y metadata legal
+        """
+        import json
+        
+        service = self._get_service()
+        
+        prompt = f"{self.QUERY_REWRITE_PROMPT}\n\nUsuario: \"{user_query}\"\nSalida:"
+        
+        response = await service.generate(
+            prompt=prompt,
+            system_prompt=None,
+            temperature=0.3  # Un poco más de creatividad para generar variantes
+        )
+        
+        # Parsear JSON de la respuesta
+        try:
+            # Limpiar respuesta (a veces viene con ```json ... ```)
+            cleaned = response.strip()
+            if cleaned.startswith("```json"):
+                cleaned = cleaned[7:]
+            if cleaned.startswith("```"):
+                cleaned = cleaned[3:]
+            if cleaned.endswith("```"):
+                cleaned = cleaned[:-3]
+            
+            result = json.loads(cleaned.strip())
+            
+            # Validar estructura mínima
+            if "queries_optimizadas" not in result:
+                result["queries_optimizadas"] = [user_query]
+            
+            return result
+            
+        except json.JSONDecodeError:
+            # Fallback: retornar query original si falla el parsing
+            return {
+                "tema_legal": "No identificado",
+                "conceptos_clave": [],
+                "queries_optimizadas": [user_query],
+                "leyes_relevantes": []
+            }
+    
+    def build_enhanced_query(self, rewrite_result: dict, original_query: str) -> str:
+        """
+        Construye una query enriquecida combinando las variantes optimizadas.
+        
+        Args:
+            rewrite_result: Resultado de rewrite_query
+            original_query: Query original del usuario
+            
+        Returns:
+            Query combinada optimizada para embedding
+        """
+        queries = rewrite_result.get("queries_optimizadas", [original_query])
+        conceptos = rewrite_result.get("conceptos_clave", [])
+        
+        # Combinar: query original + conceptos clave + primera query optimizada
+        parts = [original_query]
+        
+        if conceptos:
+            parts.append(" ".join(conceptos[:4]))  # Max 4 conceptos
+        
+        if queries and queries[0] != original_query:
+            parts.append(queries[0])
+        
+        return " | ".join(parts)
+
     async def generate_response(
         self,
         query: str,
@@ -126,16 +255,16 @@ IMPORTANTE: Eres un asistente informativo, NO un abogado. Siempre recomienda con
     def _build_prompt(self, query: str, context: str) -> str:
         """Construye el prompt con la query y el contexto."""
         return f"""CONTEXTO LEGAL (Artículos relevantes de la legislación peruana):
-{context}
+            {context}
 
----
+            ---
 
-PREGUNTA DEL USUARIO:
-{query}
+            PREGUNTA DEL USUARIO:
+            {query}
 
----
+            ---
 
-Por favor, responde la pregunta basándote ÚNICAMENTE en los artículos proporcionados arriba."""
+            Por favor, responde la pregunta basándote ÚNICAMENTE en los artículos proporcionados arriba."""
 
 
 # Instancia global

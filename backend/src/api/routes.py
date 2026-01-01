@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, status
 from src.api.schemas import (
     QueryRequest,
     QueryResponse,
+    QueryRewriteInfo,
     RetrieveRequest,
     RetrieveResponse,
     HealthResponse,
@@ -53,11 +54,22 @@ async def query_legal(request: QueryRequest) -> QueryResponse:
             for s in response.sources
         ]
         
+        # Convertir rewrite_info si existe
+        rewrite_info = None
+        if response.rewrite_info:
+            rewrite_info = QueryRewriteInfo(
+                tema_legal=response.rewrite_info.get("tema_legal"),
+                conceptos_clave=response.rewrite_info.get("conceptos_clave", []),
+                queries_optimizadas=response.rewrite_info.get("queries_optimizadas", []),
+                leyes_relevantes=response.rewrite_info.get("leyes_relevantes", [])
+            )
+        
         return QueryResponse(
             answer=response.answer,
             sources=sources,
             query=response.query,
-            total_sources_found=response.total_sources_found
+            total_sources_found=response.total_sources_found,
+            rewrite_info=rewrite_info
         )
         
     except Exception as e:

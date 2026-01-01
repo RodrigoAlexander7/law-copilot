@@ -72,12 +72,24 @@ class SourceDocument(BaseModel):
     similarity_score: float = Field(..., description="Score de similitud (0-1)")
 
 
+class QueryRewriteInfo(BaseModel):
+    """Información del query rewriting (para debug/transparencia)."""
+    tema_legal: Optional[str] = Field(None, description="Área del derecho identificada")
+    conceptos_clave: List[str] = Field(default_factory=list, description="Conceptos jurídicos extraídos")
+    queries_optimizadas: List[str] = Field(default_factory=list, description="Queries optimizadas generadas")
+    leyes_relevantes: List[str] = Field(default_factory=list, description="Leyes probablemente aplicables")
+
+
 class QueryResponse(BaseModel):
     """Response para consultas legales."""
     answer: str = Field(..., description="Respuesta generada por el asistente")
     sources: List[SourceDocument] = Field(..., description="Fuentes legales utilizadas")
     query: str = Field(..., description="Query original del usuario")
     total_sources_found: int = Field(..., description="Número total de fuentes encontradas")
+    rewrite_info: Optional[QueryRewriteInfo] = Field(
+        None, 
+        description="Información del proceso de query rewriting (cómo se optimizó la búsqueda)"
+    )
 
 
 class RetrieveResponse(BaseModel):
