@@ -2,27 +2,14 @@
 Servicio de comunicación con Google Gemini.
 Gestiona la generación de respuestas con contexto legal.
 """
-from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Type
 from src.core.config import settings
+from pydantic import BaseModel
+from src.infrastructure.models import LegalOutput
 
 
-class BaseLLMService(ABC):
-    """Interfaz base para servicios de LLM."""
-    
-    @abstractmethod
-    async def generate(
-        self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        temperature: float = 0.1
-    ) -> str:
-        """Genera una respuesta dado un prompt."""
-        pass
-
-
-class GeminiService(BaseLLMService):
-    """Servicio de Google Gemini usando el nuevo SDK google-genai."""
+class GeminiService:
+    """Servicio de Google Gemini usando el SDK google-genai."""
     
     def __init__(self):
         from google import genai
@@ -32,23 +19,23 @@ class GeminiService(BaseLLMService):
     
     async def generate(
         self,
+        model: Type[BaseModel],
         prompt: str,
         system_prompt: Optional[str] = None,
-        temperature: Optional[float] = None
+        temperature: Optional[float] = None,
     ) -> str:
         from google.genai import types
         
-        # Usar valores de settings si no se especifican
         temp = temperature if temperature is not None else settings.llm_temperature
         
-        # Construir configuración
         config = types.GenerateContentConfig(
             temperature=temp,
             max_output_tokens=settings.llm_max_tokens,
-            system_instruction=system_prompt
+            system_instruction=system_prompt,
+            response_mime_type="application/json",
+            response_json_schema=model.model_json_schema(),
         )
         
-        # Llamada async al modelo
         response = await self.client.aio.models.generate_content(
             model=self.model,
             contents=prompt,
@@ -94,19 +81,7 @@ INSTRUCCIONES:
 3. Genera 2-3 variantes de búsqueda usando terminología legal peruana
 4. Incluye términos que probablemente aparezcan en los artículos de ley
 
-FORMATO DE SALIDA (JSON):
-{
-    "tema_legal": "área del derecho aplicable",
-    "conceptos_clave": ["concepto1", "concepto2"],
-    "queries_optimizadas": [
-        "query legal 1",
-        "query legal 2", 
-        "query legal 3"
-    ],
-    "leyes_relevantes": ["nombre de ley probable 1", "nombre de ley probable 2"]
-}
-
-EJEMPLOS:
+EJEMPLOS DE SALIDA:
 
 Usuario: "Me vendieron un celular que no prende"
 Salida:
@@ -165,35 +140,22 @@ Ahora transforma la siguiente consulta:"""
         
         service = self._get_service()
         
-        prompt = f"{self.QUERY_REWRITE_PROMPT}\n\nUsuario: \"{user_query}\"\nSalida:"
+        prompt = f"{self.QUERY_REWRITE_PROMPT}\n\nUsuario: \"{user_query}\""
         
-        response = await service.generate(
-            prompt=prompt,
-            system_prompt=None,
-            temperature=0.3  # Un poco más de creatividad para generar variantes
-        )
-        
-        # Parsear JSON de la respuesta
         try:
-            # Limpiar respuesta (a veces viene con ```json ... ```)
-            cleaned = response.strip()
-            if cleaned.startswith("```json"):
-                cleaned = cleaned[7:]
-            if cleaned.startswith("```"):
-                cleaned = cleaned[3:]
-            if cleaned.endswith("```"):
-                cleaned = cleaned[:-3]
+            response = await service.generate(
+                model=LegalOutput,
+                prompt=prompt,
+                system_prompt=None,
+                temperature=0.3
+            )
             
-            result = json.loads(cleaned.strip())
-            
-            # Validar estructura mínima
-            if "queries_optimizadas" not in result:
-                result["queries_optimizadas"] = [user_query]
-            
+            # Con structured output, el JSON ya viene limpio
+            result = json.loads(response)
             return result
             
-        except json.JSONDecodeError:
-            # Fallback: retornar query original si falla el parsing
+        except (json.JSONDecodeError, Exception):
+            # Fallback: retornar query original si falla
             return {
                 "tema_legal": "No identificado",
                 "conceptos_clave": [],
@@ -249,7 +211,8 @@ Ahora transforma la siguiente consulta:"""
         return await service.generate(
             prompt=prompt,
             system_prompt=self.SYSTEM_PROMPT,
-            temperature=temperature
+            temperature=temperature,
+            model=LegalOutput
         )
     
     def _build_prompt(self, query: str, context: str) -> str:
