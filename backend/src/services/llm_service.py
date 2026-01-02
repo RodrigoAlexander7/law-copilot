@@ -19,11 +19,11 @@ class GeminiService:
     
     async def generate(
         self,
-        model: Type[BaseModel],
         prompt: str,
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
     ) -> str:
+        """Genera texto libre (para respuestas conversacionales)."""
         from google.genai import types
         
         temp = temperature if temperature is not None else settings.llm_temperature
@@ -32,8 +32,6 @@ class GeminiService:
             temperature=temp,
             max_output_tokens=settings.llm_max_tokens,
             system_instruction=system_prompt,
-            response_mime_type="application/json",
-            response_json_schema=model.model_json_schema(),
         )
         
         response = await self.client.aio.models.generate_content(
@@ -43,6 +41,38 @@ class GeminiService:
         )
         
         return response.text or ""
+    
+    async def generate_structured(
+        self,
+        prompt: str,
+        response_model: Type[BaseModel],
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
+        """Genera JSON estructurado según un schema Pydantic."""
+        from google.genai import types
+        
+        temp = temperature if temperature is not None else settings.llm_temperature
+        
+        config = types.GenerateContentConfig(
+            temperature=temp,
+            max_output_tokens=settings.llm_max_tokens,
+            system_instruction=system_prompt,
+            response_mime_type="application/json",
+            response_json_schema=response_model.model_json_schema(),
+        )
+        
+        response = await self.client.aio.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=config
+        )
+        
+        return response.text or ""
+
+
+
+
 
 
 class LLMService:
@@ -143,14 +173,14 @@ Ahora transforma la siguiente consulta:"""
         prompt = f"{self.QUERY_REWRITE_PROMPT}\n\nUsuario: \"{user_query}\""
         
         try:
-            response = await service.generate(
-                model=LegalOutput,
+            # Usa generate_structured para obtener JSON válido
+            response = await service.generate_structured(
                 prompt=prompt,
+                response_model=LegalOutput,
                 system_prompt=None,
                 temperature=0.3
             )
             
-            # Con structured output, el JSON ya viene limpio
             result = json.loads(response)
             return result
             
@@ -203,16 +233,16 @@ Ahora transforma la siguiente consulta:"""
             temperature: Creatividad de la respuesta (0-1)
             
         Returns:
-            Respuesta generada por el LLM
+            Respuesta generada por el LLM (texto libre)
         """
         prompt = self._build_prompt(query, context)
         service = self._get_service()
         
+        # Usa generate (texto libre) para respuestas conversacionales
         return await service.generate(
             prompt=prompt,
             system_prompt=self.SYSTEM_PROMPT,
-            temperature=temperature,
-            model=LegalOutput
+            temperature=temperature
         )
     
     def _build_prompt(self, query: str, context: str) -> str:
