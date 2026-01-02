@@ -17,6 +17,7 @@ class RAGResponse:
     sources: List[Dict]
     query: str
     total_sources_found: int
+    rewrite_info: Optional[Dict] = None  # Info del query rewriting
 
 
 class RAGService:
@@ -56,7 +57,8 @@ class RAGService:
         self,
         user_query: str,
         top_k: Optional[int] = None,
-        score_threshold: Optional[float] = None
+        score_threshold: Optional[float] = None,
+        use_query_rewriting: bool = True
     ) -> RAGResponse:
         """
         Procesa una consulta del usuario y genera una respuesta.
@@ -65,6 +67,7 @@ class RAGService:
             user_query: Pregunta del usuario en lenguaje natural
             top_k: Override del número de documentos a recuperar
             score_threshold: Override del umbral de similitud
+            use_query_rewriting: Si True, reescribe la query para mejor retrieval
             
         Returns:
             RAGResponse con la respuesta y las fuentes
@@ -72,17 +75,41 @@ class RAGService:
         k = top_k or self.top_k
         threshold = score_threshold or self.score_threshold
         
-        # 1. Generar embedding de la query
-        query_embedding = self.embedder.embed_query(user_query)
+        rewrite_info = None
+        search_query = user_query
         
-        # 2. Buscar documentos similares
+        # 1. Query Rewriting (opcional pero recomendado)
+        if use_query_rewriting:
+            try:
+                rewrite_info = await llm_service.rewrite_query(user_query)
+                search_query = llm_service.build_enhanced_query(rewrite_info, user_query)
+            except Exception:
+                # Si falla el rewriting, usar query original
+                search_query = user_query
+        
+        # 2. Generar embedding de la query (original o mejorada)
+        query_embedding = self.embedder.embed_query(search_query)
+        
+        # 3. Buscar documentos similares
         sources, context = vector_store.search_with_context(
             query_embedding=query_embedding,
             k=k,
             score_threshold=threshold
         )
         
-        # 3. Generar respuesta con LLM
+        # 4. Si no hay resultados y usamos rewriting, intentar con queries alternativas
+        if not sources and rewrite_info and len(rewrite_info.get("queries_optimizadas", [])) > 1:
+            for alt_query in rewrite_info["queries_optimizadas"][1:]:
+                alt_embedding = self.embedder.embed_query(alt_query)
+                sources, context = vector_store.search_with_context(
+                    query_embedding=alt_embedding,
+                    k=k,
+                    score_threshold=threshold * 0.8  # Umbral más permisivo
+                )
+                if sources:
+                    break
+        
+        # 5. Generar respuesta con LLM
         if not sources:
             answer = (
                 "No encontré artículos relevantes para tu consulta en la base de datos legal. "
@@ -90,19 +117,20 @@ class RAGService:
             )
         else:
             answer = await llm_service.generate_response(
-                query=user_query,
+                query=user_query,  # Siempre usar query original para la respuesta
                 context=context,
                 temperature=self.temperature
             )
         
-        # 4. Formatear fuentes para la respuesta
+        # 6. Formatear fuentes para la respuesta
         formatted_sources = self._format_sources(sources)
         
         return RAGResponse(
             answer=answer,
             sources=formatted_sources,
             query=user_query,
-            total_sources_found=len(sources)
+            total_sources_found=len(sources),
+            rewrite_info=rewrite_info
         )
     
     def _format_sources(self, sources: List[Dict]) -> List[Dict]:
