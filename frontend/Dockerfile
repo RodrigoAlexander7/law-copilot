@@ -12,14 +12,15 @@ RUN corepack enable
 # Copy package.json and package-lock.json files and install
 COPY package*.json pnpm-lock.yaml ./
 
-RUN pnpm install
+# install static versions
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
 # Build the project
 RUN pnpm run build
-
-
+# Delete dev dependences
+RUN pnpm prune --prod
 
 # Second stage
 # * run is used on build time -> Create a new layer
