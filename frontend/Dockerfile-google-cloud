@@ -47,7 +47,7 @@ COPY --from=builder /app/.next ./.next
 # 4. public (imágenes, favicons, etc.)
 COPY --from=builder /app/public ./public
 
-### Le decimos a Next.js que use el puerto 8080 por defecto (que es el de google cloud)
+### Le decimos a Next.js que use el puerto 8080 por defecto
 ENV PORT=8080
 ###  Exponemos el puerto (es solo formalismo, en realidad no hace nada) -> Documentacion
 EXPOSE 8080
